@@ -232,7 +232,7 @@ function resetRunVariables() {
     if (currentPlayer && getEnemies().length === 0) { // Check enemies from enemy.js
         for(let i=0; i<3; i++) spawnEnemySystem(); // Call imported spawnEnemy
     }
-    updateGameUI(); // This will be from ui.js
+    updateGameUISystem(score, currentLevelXP, xpToNextLevel); // This will be from ui.js
 }
 
 function startGame() {
@@ -242,7 +242,7 @@ function startGame() {
     // gameState = 'game'; // gameState is set by switchScreen
     // console.log(`startGame - gameRunning: ${gameRunning}, gameState: ${gameState}`);
     // console.log("Before switchScreen('game'):", "startMenu:", screens.startMenu.classList, "gameScreen:", screens.game.classList);
-    switchScreen('game');
+    switchScreenUI('game');
     // console.log("After switchScreen('game'):", screens.startMenu.classList, screens.game.classList); // Use imported screens
 
     // Use uiCanvas for checks, ctx remains local for now or could be managed by ui.js too
