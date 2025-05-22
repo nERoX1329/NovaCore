@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Core: Genesis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="startMenuScreen" class="screen active">
+        <h1>Nova Core: Genesis</h1>
+        <p>A Basic Retro Shooter.</p>
+        <button id="startGameButton">Start Game</button>
+    </div>
+
+    <div id="gameScreen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        <div id="gameUi">
+            <div>Level: <span id="levelDisplay">1</span></div>
+            <div>Score: <span id="scoreDisplay">0</span></div>
+            <div class="xp-bar-container"><div id="xpBar"></div><span id="xpProgressText">0/100 XP</span></div>
+            <div>HP: <span id="hpDisplay">100</span>/<span id="maxHpDisplay">100</span></div>
+        </div>
+        <div id="augmentationChoicePanel">
+            <h3 id="augmentationPanelTitle">Choose Upgrade!</h3>
+            <div id="augmentationChoices"></div>
+            <div id="rerollSection">
+                <button id="rerollButtonElement" disabled>Reroll (<span id="rerollsAvailableDisplay">0</span>)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen">
+        <h2>Game Over!</h2>
+        <p>Final Score: <span id="finalScoreDisplay"></span></p>
+        <p>Level Reached: <span id="finalLevelDisplay"></span></p>
+        <button id="restartGameButton">Restart Run</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
