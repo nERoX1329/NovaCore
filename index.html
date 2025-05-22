@@ -38,6 +38,30 @@
         <button id="restartGameButton">Restart Run</button>
     </div>
 
-    <script src="game.js"></script>
+    <div id="pauseMenuScreen" class="screen hidden"> <!-- Start hidden -->
+        <h2>Paused</h2>
+        <button id="resumeGameButton">Resume Game</button>
+        <button id="pauseToMenuButton">Main Menu</button>
+    </div>
+
+    <!-- Core Modules -->
+    <script type="module" src="utils.js"></script>
+    <script type="module" src="config.js"></script>
+
+    <!-- UI Module -->
+    <script type="module" src="ui.js"></script>
+
+    <!-- Game Object Modules -->
+    <script type="module" src="player.js"></script>
+    <script type="module" src="enemy.js"></script>
+    <script type="module" src="bullet.js"></script>
+    <script type="module" src="xp_orb.js"></script>
+
+    <!-- Game System Modules -->
+    <script type="module" src="augmentations.js"></script>
+    
+    <!-- Main Game Logic -->
+    <script type="module" src="main.js"></script> 
+    <!-- <script src="game.js"></script>  Original, to be replaced by main.js -->
 </body>
 </html>
