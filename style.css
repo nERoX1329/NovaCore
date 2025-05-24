@@ -1,0 +1,158 @@
+        :root {
+            --bg-color: #0d031a;
+            --primary-color: #ff00ff;
+            --secondary-color: #0a0a23;
+            --accent-color: #00ffff;
+            --text-color: #00ff00;
+            --text-alt-color: #ffffff;
+            --font-main: 'Press Start 2P', cursive;
+
+            --rarity-common: #9e9e9e; /* Grey */
+            --rarity-uncommon: #66bb6a; /* Green */
+            --rarity-rare: #42a5f5;    /* Blue */
+            --rarity-epic: #ab47bc;     /* Purple */
+            --rarity-legendary: #ffd700; /* Gold */
+            --rarity-System: #ffA500; /* Orange for system augs like shield */
+
+            --player-color: var(--accent-color);
+            --bullet-color: #FFEB3B;
+            --enemy-color1: #ff4757;
+            --enemy-color2: #7b1fa2;
+            --xp-orb-color: #40E0D0;
+            --health-bar-bg: #5a0000;
+            --health-bar-fg: #ff0000;
+            --shield-bar-bg: #003366;
+            --shield-bar-fg: #00aaff;
+            --ammo-bar-bg: #444400;
+            --ammo-bar-fg: #FFFF00;
+        }
+        body {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; background-color: var(--bg-color);
+            color: var(--text-color); font-family: var(--font-main);
+            overflow: hidden; image-rendering: pixelated;
+        }
+        .screen {
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            background-color: rgba(13, 3, 26, 0.97); padding: 20px;
+            box-sizing: border-box; border: 2px solid var(--accent-color);
+            text-align: center;
+        }
+        .screen.active { display: flex; }
+        canvas {
+            border: 2px solid var(--accent-color); background-color: #000011;
+            max-width: 90vw; max-height: 80vh; cursor: crosshair; image-rendering: pixelated;
+        }
+        button, .button-like { /* .button-like für a-Tags die wie Buttons aussehen sollen */
+            background-color: var(--secondary-color); border: 2px solid var(--primary-color);
+            color: var(--primary-color); padding: 10px 20px; text-align: center;
+            text-decoration: none; font-size: 0.8em; margin: 8px 4px; cursor: pointer;
+            border-radius: 0;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+            font-family: var(--font-main); box-shadow: 3px 3px 0px var(--accent-color);
+            display: inline-block;
+        }
+        button:hover, .button-like:hover {
+            background-color: var(--primary-color); color: var(--secondary-color);
+            box-shadow: 3px 3px 0px #00b3b3;
+        }
+        button:active, .button-like:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--accent-color); }
+        button:disabled {
+            background-color: #555; border-color: #777; color: #999; cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        h1, h2, h3 { color: var(--accent-color); margin-top: 0; text-shadow: 2px 2px 0px var(--primary-color); }
+        h1 { font-size: 1.8em; margin-bottom: 20px;}
+        h2 { font-size: 1.4em; margin-bottom: 15px;}
+        h3 { font-size: 1.1em; margin-bottom: 10px;}
+        p { margin-bottom: 15px; line-height: 1.5; font-size: 0.9em; color: var(--text-alt-color);}
+        .controls-info { margin-bottom:20px; }
+        .controls-info p { font-size: 0.7em; margin-bottom: 5px; text-align: left; max-width: 300px; margin-left:auto; margin-right:auto;}
+        .difficulty-selection button { font-size: 0.7em; padding: 8px 15px; margin: 5px;}
+
+        #gameUi {
+            position: absolute; top: 5px; left: 5px; background-color: rgba(10, 10, 35, 0.85);
+            padding: 6px; border: 2px solid var(--accent-color); font-size: 0.7em; z-index: 50;
+            min-width: 180px; color: var(--text-color);
+        }
+        #gameUi div { margin-bottom: 3px; }
+
+        .xp-bar-container, .shield-bar-container, .ammo-bar-container {
+            width: 100%; max-width: 160px; height: 12px; background-color: #333;
+            border-radius: 0; margin-top: 2px; margin-bottom: 5px; position: relative;
+            border: 1px solid var(--accent-color); box-sizing: border-box;
+        }
+        #xpBar { width: 0%; height: 100%; background-color: var(--primary-color); border-radius: 0; transition: width 0.2s ease-out; }
+        #shieldBar { width: 0%; height: 100%; background-color: var(--shield-bar-fg); border-radius: 0; transition: width 0.2s ease-out; }
+        #ammoBar { width: 100%; height: 100%; background-color: var(--ammo-bar-fg); border-radius: 0; transition: width 0.1s linear; }
+        #xpProgressText, #shieldProgressText, #ammoProgressText {
+            position: absolute; width: 100%; text-align: center; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 0.75em; color: var(--text-alt-color);
+            line-height: 1; text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+        }
+
+        #augmentationChoicePanel, #pauseMenuScreen, #metaShopScreen {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: var(--secondary-color); padding: 20px; border: 2px solid var(--primary-color);
+            border-radius: 0; text-align: center; z-index: 100;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); max-height: 90vh; overflow-y: auto;
+            color: var(--text-alt-color); width: 80%; max-width: 600px;
+        }
+        #pauseMenuScreen .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Angepasst für mehr Platz */
+            gap: 5px 15px; text-align: left; font-size: 0.75em; margin-bottom: 20px;
+            max-height: 50vh; overflow-y: auto; padding-right: 10px; /* Scrollbar falls nötig */
+        }
+        #pauseMenuScreen .stats-grid div { padding: 3px 0; border-bottom: 1px dashed rgba(0,255,255,0.2);}
+        #pauseMenuScreen .stats-grid div:last-child { border-bottom: none; }
+        #pauseMenuScreen .stats-grid span { color: var(--accent-color); float: right; }
+
+
+        #augmentationChoicePanel h3, #pauseMenuScreen h2, #metaShopScreen h2 { margin-bottom: 15px; color: var(--accent-color); }
+        #augmentationChoices { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;}
+        .augmentation-card {
+            background-color: var(--bg-color); padding: 10px; margin: 5px; border-radius: 0; cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            width: 160px; color: var(--text-alt-color); border: 2px solid;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .augmentation-card:hover { transform: translateY(-3px); }
+        .augmentation-card h4 { margin-top: 0; margin-bottom: 5px; font-size: 0.8em;}
+        .augmentation-card p { font-size: 0.7em; margin-bottom: 0; color: var(--text-alt-color); line-height: 1.3; flex-grow: 1; }
+        .augmentation-card .rarity-text { font-size: 0.65em; opacity: 0.9; margin-top:4px;}
+        .tradeoff { color: #ff6b6b; }
+        .positive { color: #81ecec; }
+
+        .rarity-Common { border-color: var(--rarity-common); }
+        .rarity-Common .rarity-text, .rarity-Common h4 { color: var(--rarity-common); }
+        .rarity-Uncommon { border-color: var(--rarity-uncommon); box-shadow: 0 0 4px 1px var(--rarity-uncommon); }
+        .rarity-Uncommon:hover { box-shadow: 0 0 7px 2px var(--rarity-uncommon); }
+        .rarity-Uncommon .rarity-text, .rarity-Uncommon h4 { color: var(--rarity-uncommon); }
+        .rarity-Rare { border-color: var(--rarity-rare); box-shadow: 0 0 7px 2px var(--rarity-rare); }
+        .rarity-Rare:hover { box-shadow: 0 0 11px 3px var(--rarity-rare); }
+        .rarity-Rare .rarity-text, .rarity-Rare h4 { color: var(--rarity-rare); }
+        .rarity-Epic { border-color: var(--rarity-epic); box-shadow: 0 0 9px 2px var(--rarity-epic); }
+        .rarity-Epic:hover { box-shadow: 0 0 13px 4px var(--rarity-epic); }
+        .rarity-Epic .rarity-text, .rarity-Epic h4 { color: var(--rarity-epic); }
+        .rarity-Legendary {
+            border-color: var(--rarity-legendary);
+            background-color: color-mix(in srgb, var(--rarity-legendary) 15%, var(--bg-color));
+            box-shadow: 0 0 10px 3px var(--rarity-legendary), 0 0 15px 4px color-mix(in srgb, var(--rarity-legendary) 40%, transparent);
+        }
+        .rarity-Legendary:hover {
+            box-shadow: 0 0 14px 4px var(--rarity-legendary), 0 0 20px 6px color-mix(in srgb, var(--rarity-legendary) 50%, transparent);
+        }
+        .rarity-Legendary .rarity-text, .rarity-Legendary h4 { color: var(--rarity-legendary); }
+        .rarity-System .rarity-text, .rarity-System h4 { color: var(--rarity-System); }
+
+        #rerollSection { margin-top: 15px; }
+        .hidden { display: none !important; }
+        #gameOverScreen h2, #pauseMenuScreen h2, #metaShopScreen h2 { text-shadow: 2px 2px 0px #8a2323; }
+        #gameOverScreen p, #pauseMenuScreen p, #metaShopScreen p { color: var(--text-alt-color); font-size: 0.9em; }
+        .meta-currency-display { margin-bottom: 20px; font-size: 1em; color: var(--rarity-legendary); }
+        #metaUpgradesContainer {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            max-height: 60vh; overflow-y: auto; padding: 5px;
+        }

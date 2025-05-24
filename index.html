@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Core: Genesis - Refactored & Enhanced</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css"> </head>
+</head>
+<body>
+    <div id="startMenuScreen" class="screen active">
+        <h1>Nova Core: Genesis</h1>
+        <p>A Bullet Heaven Roguelike.</p>
+        <div class="controls-info">
+            <h3>Controls:</h3>
+            <p>Move: WASD / Arrow Keys</p>
+            <p>Aim: Mouse</p>
+            <p>Shoot: Left Mouse Button / Spacebar</p>
+            <p>Dash: Shift</p>
+            <p>Reload: R</p>
+            <p>Pause: ESC</p>
+        </div>
+        <div class="difficulty-selection" style="margin: 20px 0;">
+            <h3>Select Difficulty:</h3>
+            <button id="difficultyEasy">Easy</button>
+            <button id="difficultyNormal" class="button-like-active">Normal</button> <button id="difficultyHard">Hard</button>
+        </div>
+        <button id="startGameButton">Start Game</button>
+        <button id="metaShopButton" style="margin-top: 10px;">Meta Upgrades</button>
+        <div class="meta-currency-display">Nova Shards: <span id="startMenuMetaCurrency">0</span></div>
+    </div>
+
+    <div id="gameScreen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        <div id="gameUi">
+            <div>Level: <span id="levelDisplay">1</span></div>
+            <div>Score: <span id="scoreDisplay">0</span></div>
+            <div class="xp-bar-container"><div id="xpBar"></div><span id="xpProgressText">0/100 XP</span></div>
+            <div>HP: <span id="hpDisplay">100</span>/<span id="maxHpDisplay">100</span></div>
+            </div>
+        <div id="augmentationChoicePanel" class="hidden">
+            <h3 id="augmentationPanelTitle">Choose Upgrade!</h3>
+            <div id="augmentationChoices"></div>
+            <div id="rerollSection">
+                <button id="rerollButtonElement" disabled>Reroll (<span id="rerollsAvailableDisplay">0</span>)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pauseMenuScreen" class="screen hidden"> <h2>Game Paused</h2>
+        <div class="stats-grid" id="pauseStatsDisplay">
+            </div>
+        <div style="margin-top: 20px;">
+            <button id="resumeGameButton">Resume Game</button>
+            <button id="restartRunFromPauseButton">Restart Run</button>
+            <button id="pauseToMenuButton">Main Menu</button>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen">
+        <h2>Game Over!</h2>
+        <p>Final Score: <span id="finalScoreDisplay"></span></p>
+        <p>Level Reached: <span id="finalLevelDisplay"></span></p>
+        <p>Nova Shards Earned: <span id="runCurrencyDisplay">0</span></p>
+        <div class="meta-currency-display">Total Nova Shards: <span id="gameOverMetaCurrency">0</span></div>
+        <button id="restartGameButton">Restart Run</button>
+        <button id="metaShopButtonGameOver">Meta Upgrades</button>
+        <button id="mainMenuButtonGameOver">Main Menu</button>
+    </div>
+
+    <div id="metaShopScreen" class="screen hidden">
+        <h2>Meta Upgrades</h2>
+        <div class="meta-currency-display">Nova Shards: <span id="shopMetaCurrency">0</span></div>
+        <div id="metaUpgradesContainer">
+            <p>Loading Meta Upgrades...</p>
+        </div>
+        <button id="backToMenuFromShopButton" style="margin-top: 20px;">Back to Main Menu</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="data_augments.js"></script>
+    <script src="data_classes.js"></script>
+    <script src="utils.js"></script>
+    <script src="ui_manager.js"></script>
+    <script src="game_objects.js"></script>
+    <script src="effects.js"></script>
+    <script src="game_logic.js"></script>
+    <script src="main.js"></script>
+
+</body>
+</html>
