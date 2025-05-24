@@ -218,18 +218,331 @@
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
     const BASE_REROLLS_PER_CHOICE = 3;
-    let chosenSpecializations = [];
+    let chosenizations = [];
 
     function getCssVar(varName) {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
     }
 
     const CLASS_SPECIALIZATIONS = [
-        { id: "class_overdrive", name: "Overdrive System", description: "<span class='positive'>+50% FR, +20% Proj.Spd, +15% Mv.Spd</span><br><span class='tradeoff'>-25% Damage</span>", rarity: "Legendary", apply: (p) => { p.shotsPerSecond *= 1.5; p.fireRate = 1000 / p.shotsPerSecond; p.bulletSpeed *= 1.2; p.speed *= 1.15; p.damageMultiplier *= 0.75; p.specializationsChosen = (p.specializationsChosen || 0) + 1; chosenSpecializations.push("class_overdrive");}},
-        { id: "class_heavy_ordnance", name: "Heavy Ordnance", description: "<span class='positive'>+60% Dmg, Proj. Pierce +1</span><br><span class='tradeoff'>-30% FR, -15% Mv.Spd</span>", rarity: "Legendary", apply: (p) => { p.damageMultiplier *= 1.6; p.bulletPiercing = (p.bulletPiercing || 0) + 1; p.shotsPerSecond *= 0.7; p.fireRate = 1000 / p.shotsPerSecond; p.speed *= 0.85; p.specializationsChosen = (p.specializationsChosen || 0) + 1; chosenSpecializations.push("class_heavy_ordnance");}},
-        { id: "class_scatter_core", name: "Scatter Core", description: "<span class='positive'>+3 Proj, +15° Spread</span><br><span class='tradeoff'>-20% Dmg, -10% Proj.Spd</span>", rarity: "Legendary", apply: (p) => { p.numProjectiles += 3; p.projectileSpreadAngle = (p.projectileSpreadAngle || 0) + 15; p.damageMultiplier *= 0.8; p.bulletSpeed *= 0.9; p.specializationsChosen = (p.specializationsChosen || 0) + 1; chosenSpecializations.push("class_scatter_core");}},
-        { id: "class_precision_protocol", name: "Precision Protocol", description: "<span class='positive'>+15% Crit Chance, +75% Crit Dmg</span><br><span class='tradeoff'>-10% FR</span>", rarity: "Legendary", apply: (p) => { p.critChance += 0.15; p.critDamageMultiplier = (p.critDamageMultiplier || 1.5) + 0.75; p.shotsPerSecond *= 0.9; p.fireRate = 1000 / p.shotsPerSecond; p.specializationsChosen = (p.specializationsChosen || 0) + 1; chosenSpecializations.push("class_precision_protocol");}},
-        { id: "class_guardian_array", name: "Guardian Array", description: "<span class='positive'>Shooting emits Dmg Wave, +25 Max HP</span><br><span class='tradeoff'>-10% Mv.Spd</span>", rarity: "Legendary", apply: (p) => { p.guardianWave.enabled = true; p.guardianWave.damageFactor = 0.25; p.guardianWave.radius = p.guardianWave.radius || 40; p.guardianWave.cooldown = p.guardianWave.cooldown || 200; p.maxHp += 25; p.hp = Math.min(p.hp +25, p.maxHp); p.speed *= 0.9; p.specializationsChosen = (p.specializationsChosen || 0) + 1; chosenSpecializations.push("class_guardian_array");}},
+            {
+        id: "class_overdrive_positive",
+        name: "Hyper Drive System",
+        description: "<span class='positive'>+60% Fire Rate, +25% Projectile Speed, +20% Movement Speed, +10% Damage.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.shotsPerSecond = (p.shotsPerSecond || p.baseShotsPerSecond) * 1.60;
+            p.fireRate = 1000 / p.shotsPerSecond;
+            p.bulletSpeed = (p.bulletSpeed || p.baseBulletSpeed) * 1.25;
+            p.speed = (p.speed || p.baseSpeed) * 1.20;
+            p.damageMultiplier = (p.damageMultiplier || 1.0) * 1.10;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_overdrive_positive")) chosenSpecializations.push("class_overdrive_positive");
+        }
+    },
+    {
+        id: "class_heavy_artillery",
+        name: "Heavy Artillery",
+        description: "<span class='positive'>+80% Damage, Projectiles Pierce +2 enemies, +15% Max HP.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.damageMultiplier = (p.damageMultiplier || 1.0) * 1.80;
+            p.bulletPiercing = (p.bulletPiercing || 0) + 2;
+            const hpBoost = Math.floor((p.baseMaxHp || 100) * 0.15); // Nutzt p.baseMaxHp aus initPlayer
+            p.maxHp = (p.maxHp || p.baseMaxHp) + hpBoost;
+            p.hp = Math.min(p.hp + hpBoost, p.maxHp);
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_heavy_artillery")) chosenSpecializations.push("class_heavy_artillery");
+        }
+    },
+    {
+        id: "class_spreadshot_master",
+        name: "Spreadshot Master",
+        description: "<span class='positive'>+4 Projectiles, Projectile Spread slightly increased (+10°), +15% Projectile Speed.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.numProjectiles = (p.numProjectiles || p.baseNumProjectiles) + 4;
+            p.projectileSpreadAngle = (p.projectileSpreadAngle || p.baseProjectileSpreadAngle) + 10;
+            p.bulletSpeed = (p.bulletSpeed || p.baseBulletSpeed) * 1.15;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_spreadshot_master")) chosenSpecializations.push("class_spreadshot_master");
+        }
+    },
+    {
+        id: "class_apex_predator",
+        name: "Apex Predator",
+        description: "<span class='positive'>+25% Critical Hit Chance, +125% Critical Hit Damage.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.critChance = (p.critChance || p.baseCritChance) + 0.25;
+            p.critDamageMultiplier = (p.critDamageMultiplier || p.baseCritDamageMultiplier) + 1.25;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_apex_predator")) chosenSpecializations.push("class_apex_predator");
+        }
+    },
+    {
+        id: "class_bulwark_protocol",
+        name: "Bulwark Protocol",
+        description: "<span class='positive'>Shooting emits a damaging wave (scales with your damage), +50 Max HP, +10% Damage Reduction.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.guardianWave = p.guardianWave || { enabled: false, damageFactor: 0.25, radius: 40, lastProcTime: 0, cooldown: 200 }; // Initialisieren, falls nicht vorhanden
+            p.guardianWave.enabled = true;
+            p.guardianWave.damageFactor = (p.guardianWave.damageFactor || 0.25) + 0.1;
+            p.guardianWave.radius = (p.guardianWave.radius || 40) + 5; // Original war 45
+            p.guardianWave.cooldown = (p.guardianWave.cooldown || 200) - 20; // Original war 180
+            const hpBoost = 50;
+            p.maxHp = (p.maxHp || p.baseMaxHp) + hpBoost;
+            p.hp = Math.min(p.hp + hpBoost, p.maxHp);
+            p.damageReduction = (p.damageReduction || 0) + 0.10;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_bulwark_protocol")) chosenSpecializations.push("class_bulwark_protocol");
+        }
+    },
+
+    // 15 Neue Klassen-Spezialisierungen (angepasst)
+    {
+        id: "class_temporal_master",
+        name: "Temporal Master",
+        description: "<span class='positive'>Projectiles have a 10% chance to briefly stun enemies (1.5s). +25% Movement Speed, +35% Projectile Speed.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.stunChanceOnHit = (p.stunChanceOnHit || 0) + 0.10; // Stun Logik muss in checkCollisions implementiert werden
+            p.stunDuration = 1500;
+            p.speed = (p.speed || p.baseSpeed) * 1.25;
+            p.bulletSpeed = (p.bulletSpeed || p.baseBulletSpeed) * 1.35;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_temporal_master")) chosenSpecializations.push("class_temporal_master");
+        }
+    },
+    {
+        id: "class_elemental_conduit",
+        name: "Elemental Conduit",
+        description: "<span class='positive'>+35% Global Elemental Chance, +60% Global Elemental Damage. Elemental effects are more potent (e.g. +2 Lightning Chains).</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.globalElementalChanceBonus = (p.globalElementalChanceBonus || 0) + 0.35;
+            p.globalElementalDamageBonus = (p.globalElementalDamageBonus || 1.0) * 1.60;
+            p.lightningChainTargets = (p.lightningChainTargets || 0) + 2;
+            // Weitere "potenter" Effekte (Feuer DoT Stärke, Eis Dauer/Slow Stärke) müssten in applyElementalEffect angepasst werden,
+            // oder hier spezifische Multiplikatoren/Boni für diese Effekte setzen.
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_elemental_conduit")) chosenSpecializations.push("class_elemental_conduit");
+        }
+    },
+    {
+        id: "class_vampiric_reaver",
+        name: "Vampiric Reaver",
+        description: "<span class='positive'>+6% Lifesteal. Killing an enemy grants +4% Damage for 6s (stacks up to 10 times).</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.lifeStealPercent = (p.lifeStealPercent || 0) + 0.06;
+            p.killStreakDamageBonus = { // Diese Logik muss in handleEnemyDefeat (für Stack-Erhöhung) und updatePlayer (für Stack-Abbau/Bonus-Anwendung) implementiert werden
+                enabled: true,
+                bonusPerStack: 0.04,
+                maxStacks: 10,
+                duration: 6000,
+                currentStacks: 0,
+                timer: 0,
+                activeDamageBonus: 0 // Temporärer Speicher für den aktiven Bonus
+            };
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_vampiric_reaver")) chosenSpecializations.push("class_vampiric_reaver");
+        }
+    },
+    {
+        id: "class_unseen_assassin",
+        name: "Unseen Assassin",
+        description: "<span class='positive'>First hit on an enemy is a guaranteed Critical Hit with +150% bonus Critical Damage. +15% base Critical Hit Chance.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.firstHitCritBonus = { enabled: true, bonusCritDamage: 1.50 }; // Logik in checkCollisions (Bullet-Hit) benötigt
+            p.critChance = (p.critChance || p.baseCritChance) + 0.15;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_unseen_assassin")) chosenSpecializations.push("class_unseen_assassin");
+        }
+    },
+    {
+        id: "class_colossus_armor",
+        name: "Colossus Armor",
+        description: "<span class='positive'>+120 Max HP, +20% Damage Reduction, +2.5 HP/sec Regeneration.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            const hpBoost = 120;
+            p.maxHp = (p.maxHp || p.baseMaxHp) + hpBoost;
+            p.hp = Math.min(p.hp + hpBoost, p.maxHp);
+            p.damageReduction = (p.damageReduction || 0) + 0.20;
+            p.hpRegenRate = (p.hpRegenRate || 0) + 2.5;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_colossus_armor")) chosenSpecializations.push("class_colossus_armor");
+        }
+    },
+    {
+        id: "class_bullet_virtuoso",
+        name: "Bullet Virtuoso",
+        description: "<span class='positive'>+2 Projectiles. Projectiles gain +20% Homing Strength and Pierce +1 additional enemy.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.numProjectiles = (p.numProjectiles || p.baseNumProjectiles) + 2;
+            p.homingStrength = (p.homingStrength || 0) + 0.20;
+            p.bulletPiercing = (p.bulletPiercing || 0) + 1;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_bullet_virtuoso")) chosenSpecializations.push("class_bullet_virtuoso");
+        }
+    },
+    {
+        id: "class_nova_pulsar",
+        name: "Nova Pulsar",
+        description: "<span class='positive'>Critical hits release a potent energy nova, damaging nearby enemies. Greatly increased Area Damage (+50%).</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.critNova = { enabled: true, damageFactor: 0.75, radius: 70 }; // Logik in checkCollisions (bei Crit) benötigt
+            p.areaDamageMultiplier = (p.areaDamageMultiplier || 1.0) * 1.50;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_nova_pulsar")) chosenSpecializations.push("class_nova_pulsar");
+        }
+    },
+    {
+        id: "class_chrono_accelerant",
+        name: "Chrono Accelerant",
+        description: "<span class='positive'>+80% Fire Rate, +30% Movement Speed. Dash cooldown significantly reduced (-60%).</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.shotsPerSecond = (p.shotsPerSecond || p.baseShotsPerSecond) * 1.80;
+            p.fireRate = 1000 / p.shotsPerSecond;
+            p.speed = (p.speed || p.baseSpeed) * 1.30;
+            p.dashCooldown = (p.dashCooldown || 1500) * 0.40;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_chrono_accelerant")) chosenSpecializations.push("class_chrono_accelerant");
+        }
+    },
+    {
+        id: "class_aegis_fortress",
+        name: "Aegis Fortress",
+        description: "<span class='positive'>Grants +100 Max Shield. Shield recharges 60% faster (delay & rate). Shield explodes on break dealing 75 damage.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            // Initialisiere Schildsystem falls nicht vorhanden (kopiert von 'shield_capacity_s' Augmentierung)
+            if (!p.maxShield || p.maxShield === 0) {
+                p.maxShield = 0;
+                p.shield = 0;
+                p.shieldRechargeDelay = p.shieldRechargeDelay || 3000; // Standardwert aus initPlayer
+                p.shieldRegenRate = 0; // Wird unten gesetzt/erhöht
+                if (!p.activeAugmentations) p.activeAugmentations = [];
+                if (!p.activeAugmentations.some(aug => aug.id === 'shield_system_online')) {
+                    p.activeAugmentations.push({ id: 'shield_system_online', rarity: 'System' });
+                }
+            }
+            p.maxShield += 100;
+            p.shield = Math.min(p.shield + 100, p.maxShield);
+            if (p.shieldRegenRate === 0 && p.maxShield > 0) p.shieldRegenRate = (0.05 * p.maxShield); // Setze Basis-Regenrate
+
+            p.shieldRechargeDelay = (p.shieldRechargeDelay || 3000) * 0.40;
+            p.shieldRegenRate = (p.shieldRegenRate || (0.05 * p.maxShield)) * 1.60; // Erhöhe aktuelle oder Basis-Regenrate
+
+            p.unstableShieldCoreActive = true; // Dein Code hat bereits unstableShieldCore Logik
+            p.unstableShieldCoreDamage = 75;
+            p.unstableShieldCorePushback = (p.unstableShieldCorePushback || 50); // Behalte alten Wert oder setze Default
+
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_aegis_fortress")) chosenSpecializations.push("class_aegis_fortress");
+        }
+    },
+    {
+        id: "class_fate_weaver",
+        name: "Fate Weaver",
+        description: "<span class='positive'>Massively increased Luck Factor (+150%). Augment choices always include one of a higher rarity (if possible). Gain +2 base Rerolls.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.luckFactor = (p.luckFactor || p.baseLuckFactor) * 2.50;
+            p.guaranteedHigherRarityChoice = true; // Diese Logik muss in getWeightedRandomAugmentation implementiert werden
+            p.bonusRerolls = (p.bonusRerolls || 0) + 2; // Passt zur Berechnung in levelUp
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_fate_weaver")) chosenSpecializations.push("class_fate_weaver");
+        }
+    },
+    {
+        id: "class_kinetic_storm",
+        name: "Kinetic Storm",
+        description: "<span class='positive'>Gain +30% Damage and +30% Fire Rate while moving. These bonuses are doubled when below 35% HP.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.kineticStormBonus = { // Diese Logik muss in updatePlayer implementiert werden, um Boni dynamisch anzuwenden
+                enabled: true,
+                damageBonusMoving: 0.30,
+                fireRateBonusMoving: 0.30,
+                lowHpThreshold: 0.35,
+                lowHpMultiplier: 2.0,
+                isActive: false // Wird in updatePlayer gesetzt
+            };
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_kinetic_storm")) chosenSpecializations.push("class_kinetic_storm");
+        }
+    },
+    {
+        id: "class_storm_caller",
+        name: "Storm Caller",
+        description: "<span class='positive'>All projectiles have a 35% chance to become chain lightning, striking up to 4 foes. +60% Lightning Damage.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.projectilesBecomeChainLightningChance = 0.35; // Logik beim Abfeuern von Kugeln (updatePlayer) oder in checkCollisions (beim ersten Treffer)
+            p.chainLightningMaxBounces = 4;
+            p.elementalChance = (p.elementalChance || {});
+            // Diese Klasse garantiert nicht, dass alle Schüsse Blitze sind, sondern gibt eine Chance, dass Projektile zu Kettenblitzen werden.
+            // Der Bonus auf Lightning Damage wirkt, wenn ein Blitz ausgelöst wird.
+            p.lightningDamageMultiplier = (p.lightningDamageMultiplier || 1.0) * 1.60; // Spezifischer Multiplikator für Blitzschaden
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_storm_caller")) chosenSpecializations.push("class_storm_caller");
+        }
+    },
+    {
+        id: "class_velocity_dynamo",
+        name: "Velocity Dynamo",
+        description: "<span class='positive'>+15% Base Movement Speed. Convert 1.5% of your total movement speed into bonus weapon damage per point of speed.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.baseSpeed *= 1.15; // Erhöhe den tatsächlichen Basiswert
+            p.speed = (p.speed / (p.baseSpeed / 1.15)) * p.baseSpeed; // Skaliere aktuellen Speed proportional mit
+
+            p.velocityDynamo = { enabled: true, damageConversionFactor: 0.00015 }; // 1.5% pro Speed-Einheit ist viel, eher 0.015% oder 0.15%? 0.015 / 100 = 0.00015 für den Faktor. Annahme: 0.015 bedeutet 1.5facher Bonus, nicht +1.5%. Wenn es +1.5% des Speeds als Schadensbonus ist, dann eher damageMultiplier += p.speed * 0.015. Hier: Bonus-Schadensmultiplikator wird p.speed * factor. Diese Logik muss in updatePlayer oder Schadensberechnung.
+            // Nehmen wir an, es ist ein direkter Multiplikator auf den Schaden:
+            // p.damageMultiplier *= (1 + (p.speed * 0.015)); // Dies müsste aber dynamisch in updatePlayer geschehen.
+            // Die Klasse aktiviert nur den Mechanismus.
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_velocity_dynamo")) chosenSpecializations.push("class_velocity_dynamo");
+        }
+    },
+    {
+        id: "class_soul_harvester",
+        name: "Soul Harvester",
+        description: "<span class='positive'>Each XP orb collected grants +0.15 Max HP and +0.03% Damage (stacks for current run). +60% XP Collection Radius.</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.soulHarvester = { enabled: true, hpPerOrb: 0.15, damagePercentPerOrb: 0.0003, collectedOrbs: 0 }; // Logik in gainXP oder XP Orb Kollision
+            p.xpCollectionRadiusMultiplier = (p.xpCollectionRadiusMultiplier || p.baseXpCollectionRadiusMultiplier) * 1.60;
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_soul_harvester")) chosenSpecializations.push("class_soul_harvester");
+        }
+    },
+    {
+        id: "class_divine_interventionist",
+        name: "Divine Interventionist",
+        description: "<span class='positive'>Every 25 seconds, gain a random powerful 5-second buff (Invulnerability, Max Crit, Infinite Ammo, Rapid Regen).</span>",
+        rarity: "Legendary",
+        apply: (p) => {
+            p.divineIntervention = { // Logik für Timer und Buff-Aktivierung in updatePlayer
+                enabled: true,
+                interval: 25000,
+                duration: 5000,
+                timer: 25000, // Startet "geladen" oder 0 für ersten Cooldown
+                activeBuff: null,
+                activeBuffTimer: 0,
+                possibleBuffs: ['invulnerability', 'max_crit', 'infinite_ammo', 'rapid_regen'] // Infinite Ammo & Max Crit müssten im Schuss-Code beachtet werden
+            };
+            p.specializationsChosen = (p.specializationsChosen || 0) + 1;
+            if (!chosenSpecializations.includes("class_divine_interventionist")) chosenSpecializations.push("class_divine_interventionist");
+        }
+    }
     ];
 
     const ALL_AUGMENTATIONS = [
