@@ -1308,16 +1308,35 @@
         }
 
         gameRunning = false;
-        if ((player.level === 10 && player.specializationsChosen === 0) || (player.level === 20 && player.specializationsChosen === 1)) {
-            gameState = player.level === 10 ? 'paused_class_choice' : 'paused_second_class_choice';
-            augmentationPanelTitle.textContent = "Choose Your Specialization!";
-            showSpecializationChoiceScreen();
-        } else {
-            gameState = 'paused_augment';
-            augmentationPanelTitle.textContent = "Choose Upgrade!";
-            showAugmentationChoiceScreen();
-        }
-    }
+
+          const MAX_SPECIALIZATIONS_TO_CHOOSE = 10; 
+
+        // Prüfe, ob das aktuelle Level ein Vielfaches von 10 ist (und größer als 0)
+        if (player.level % 10 === 0 && player.level > 0) {
+            // Überprüfe, ob der Spieler noch Spezialisierungen wählen darf
+            const canChooseMoreSpecializations = (player.specializationsChosen || 0) < MAX_SPECIALIZATIONS_TO_CHOOSE;
+            // Und ob überhaupt noch nicht gewählte Spezialisierungen verfügbar sind:
+            const availableSpecializations = CLASS_SPECIALIZATIONS.filter(spec => !chosenSpecializations.includes(spec.id));
+
+            if (canChooseMoreSpecializations && availableSpecializations.length > 0) {
+                // Es ist nicht mehr nötig, zwischen 'paused_class_choice' und 'paused_second_class_choice' zu unterscheiden.
+                // Wir verwenden einen allgemeineren Gamestate oder den bestehenden.
+                gameState = 'paused_specialization_choice'; // Du könntest einen neuen State definieren oder 'paused_class_choice' wiederverwenden
+                augmentationPanelTitle.textContent = "Choose Your Specialization!";
+                showSpecializationChoiceScreen(); // Diese Funktion zeigt die Auswahl an
+            } else {
+                // Keine Spezialisierung mehr möglich (Limit erreicht oder keine mehr verfügbar), also normale Augmentierung anbieten
+                gameState = 'paused_augment';
+                augmentationPanelTitle.textContent = "Choose Upgrade!";
+                showAugmentationChoiceScreen();
+            }
+        } else {
+            // Kein 10er-Level, also normale Augmentierung anbieten
+            gameState = 'paused_augment';
+            augmentationPanelTitle.textContent = "Choose Upgrade!";
+            showAugmentationChoiceScreen();
+        }
+    }
 
     function showSpecializationChoiceScreen() {
         if (!augmentationChoicesContainer || !augmentationChoicePanel) return;
