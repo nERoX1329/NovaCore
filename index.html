@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Core: Genesis - Refactored & Enhanced</title>
+    <title>Nova Core: Genesis - Refactored</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css"> </head>
-</head>
+    <link rel="stylesheet" href="style.css"> </head>
 <body>
     <div id="startMenuScreen" class="screen active">
         <h1>Nova Core: Genesis</h1>
@@ -23,7 +22,8 @@
         <div class="difficulty-selection" style="margin: 20px 0;">
             <h3>Select Difficulty:</h3>
             <button id="difficultyEasy">Easy</button>
-            <button id="difficultyNormal" class="button-like-active">Normal</button> <button id="difficultyHard">Hard</button>
+            <button id="difficultyNormal" class="button-like-active">Normal</button>
+            <button id="difficultyHard">Hard</button>
         </div>
         <button id="startGameButton">Start Game</button>
         <button id="metaShopButton" style="margin-top: 10px;">Meta Upgrades</button>
@@ -47,7 +47,8 @@
         </div>
     </div>
 
-    <div id="pauseMenuScreen" class="screen hidden"> <h2>Game Paused</h2>
+    <div id="pauseMenuScreen" class="screen hidden">
+        <h2>Game Paused</h2>
         <div class="stats-grid" id="pauseStatsDisplay">
             </div>
         <div style="margin-top: 20px;">
@@ -73,7 +74,7 @@
         <div class="meta-currency-display">Nova Shards: <span id="shopMetaCurrency">0</span></div>
         <div id="metaUpgradesContainer">
             <p>Loading Meta Upgrades...</p>
-        </div>
+            </div>
         <button id="backToMenuFromShopButton" style="margin-top: 20px;">Back to Main Menu</button>
     </div>
 
