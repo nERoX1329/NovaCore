@@ -657,8 +657,8 @@
 
     function initPlayer() {
         player = {
-            baseSpeed: 2, baseHp: 100, baseMaxHp: 100, baseDamage: 5, baseShotsPerSecond: 2.0,
-            baseBulletSpeed: 4, baseNumProjectiles: 1, baseProjectileSpreadAngle: 0,
+            baseSpeed: 3, baseHp: 100, baseMaxHp: 100, baseDamage: 10, baseShotsPerSecond: 3.0,
+            baseBulletSpeed: 5, baseNumProjectiles: 1, baseProjectileSpreadAngle: 0,
             baseBulletPiercing: 0, baseCritChance: 0.0, baseCritDamageMultiplier: 1.5,
             baseXpCollectionRadiusMultiplier: 1.0, baseLuckFactor: 1.0,
             baseProjectileSizeMultiplier: 1.0, baseAreaDamageMultiplier: 1.0,
@@ -768,7 +768,7 @@
         } else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + size + 10;
         } else { x = -size -10 ; y = Math.random() * canvas.height; }
 
-        const speed = 0.5 + Math.random() * 0.5 + (player.level * 0.05);
+        const speed = 0.5 + Math.random() * 0.5 + (player.level * 0.03);
         const hp = Math.floor(10 + player.level * 5 + size * 0.5);
         const enemyColor1 = getCssVar('--enemy-color1') || '#FF0000';
         const enemyColor2 = getCssVar('--enemy-color2') || '#800080';
@@ -1153,7 +1153,7 @@
                 enemies.splice(i, 1);
             }
         }
-        if (player && Math.random() < 0.015 + (player.level * 0.003) && enemies.length < 10 + player.level * 1.5) {
+        if (player && Math.random() < 0.015 + (player.level * 0.003) && enemies.length < 10 + player.level * 1) {
             spawnEnemy();
         }
     }
