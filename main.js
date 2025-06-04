@@ -8,6 +8,13 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
+const screens = document.querySelectorAll('.screen');
+function showScreen(id) {
+  screens.forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
 let player;
 let keys = {};
 let mouse = { x: 0, y: 0, down: false };
@@ -53,6 +60,7 @@ function startGame() {
   explosions.length = 0;
   lastSpawn = 0;
   lastTime = performance.now();
+  showScreen('gameScreen');
   requestAnimationFrame(gameLoop);
 }
 
@@ -67,5 +75,3 @@ canvas.addEventListener('mousedown', () => { mouse.down = true; });
 canvas.addEventListener('mouseup', () => { mouse.down = false; });
 
 document.getElementById('startGameButton').addEventListener('click', startGame);
-
-startGame();
