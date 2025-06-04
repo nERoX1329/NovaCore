@@ -40,6 +40,7 @@
     const pauseKillsDisplay = document.getElementById('pauseKillsDisplay');
     const upgradeCountDisplay = document.getElementById('upgradeCountDisplay');
     const achievementToast = document.getElementById('achievementToast');
+    const randomEventInfo = document.getElementById('randomEventInfo');
     const pauseMainMenuButton = document.getElementById('pauseMainMenuButton');
     const gameOverMenuButton = document.getElementById('gameOverMenuButton');
 
@@ -722,20 +723,35 @@
     function spawnCircleEvent() {
         if (!player || !canvas) return;
         activeRandomEvent = { x: Math.random()*canvas.width, y: Math.random()*canvas.height, radius: 40, progress: 0, required: 20000 };
+        if (randomEventInfo) {
+            randomEventInfo.textContent = 'Stand in the green circle to charge for a bonus!';
+            randomEventInfo.classList.remove('hidden');
+        }
     }
 
     function updateRandomEvent(dT) {
-        if (!activeRandomEvent || !player) return;
+        if (!activeRandomEvent || !player) {
+            if (randomEventInfo) randomEventInfo.classList.add('hidden');
+            return;
+        }
         const dist = Math.hypot(player.x - activeRandomEvent.x, player.y - activeRandomEvent.y);
         if (dist < activeRandomEvent.radius) {
             activeRandomEvent.progress += dT;
             if (activeRandomEvent.progress >= activeRandomEvent.required) {
                 player.tempExtraProjectiles = { amount: 2, timer: 15000 };
                 player.numProjectiles += 2;
+                if (randomEventInfo) randomEventInfo.textContent = '+2 projectiles for 15s!';
                 activeRandomEvent = null;
+                if (randomEventInfo) setTimeout(() => randomEventInfo.classList.add('hidden'), 3000);
+                return;
             }
         } else if (activeRandomEvent.progress > 0) {
             activeRandomEvent.progress = Math.max(0, activeRandomEvent.progress - dT);
+        }
+        if (randomEventInfo) {
+            const pct = Math.floor((activeRandomEvent.progress / activeRandomEvent.required) * 100);
+            randomEventInfo.textContent = `Random Event: ${pct}% complete`;
+            randomEventInfo.classList.remove('hidden');
         }
     }
 
