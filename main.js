@@ -38,6 +38,11 @@
     const pauseScoreDisplay = document.getElementById('pauseScoreDisplay');
     const pauseLevelDisplay = document.getElementById('pauseLevelDisplay');
     const pauseKillsDisplay = document.getElementById('pauseKillsDisplay');
+    const pauseHpDisplay = document.getElementById('pauseHpDisplay');
+    const pauseMaxHpDisplay = document.getElementById('pauseMaxHpDisplay');
+    const pauseDamageDisplay = document.getElementById('pauseDamageDisplay');
+    const pauseFireRateDisplay = document.getElementById('pauseFireRateDisplay');
+    const pauseSpeedDisplay = document.getElementById('pauseSpeedDisplay');
     const upgradeCountDisplay = document.getElementById('upgradeCountDisplay');
     const achievementToast = document.getElementById('achievementToast');
     const randomEventInfo = document.getElementById('randomEventInfo');
@@ -71,7 +76,7 @@
     let metaUpgrades = JSON.parse(localStorage.getItem(metaUpgradeKey) || '{}');
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
-    const UPGRADE_LIMIT = 10;
+    const UPGRADE_LIMIT = Infinity;
     let chosenUpgrades = [];
     const achievementsKey = 'nova_achievements';
     const unlockedClassesKey = 'nova_unlocked_classes';
@@ -756,9 +761,16 @@
 
     function spawnCircleEvent() {
         if (!player || !canvas) return;
-        activeRandomEvent = { x: Math.random()*canvas.width, y: Math.random()*canvas.height, radius: 40, progress: 0, required: 20000 };
+        activeRandomEvent = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: 50,
+            progress: 0,
+            required: 8000,
+            rewardText: '+2 projectiles for 15s'
+        };
         if (randomEventInfo) {
-            randomEventInfo.textContent = 'Stand in the green circle to charge for a bonus!';
+            randomEventInfo.textContent = `Stand in the green circle! Reward: ${activeRandomEvent.rewardText}`;
             randomEventInfo.classList.remove('hidden');
         }
     }
@@ -774,7 +786,7 @@
             if (activeRandomEvent.progress >= activeRandomEvent.required) {
                 player.tempExtraProjectiles = { amount: 2, timer: 15000 };
                 player.numProjectiles += 2;
-                if (randomEventInfo) randomEventInfo.textContent = '+2 projectiles for 15s!';
+                if (randomEventInfo) randomEventInfo.textContent = `${activeRandomEvent.rewardText}!`;
                 activeRandomEvent = null;
                 if (randomEventInfo) setTimeout(() => randomEventInfo.classList.add('hidden'), 3000);
                 return;
@@ -784,7 +796,7 @@
         }
         if (randomEventInfo) {
             const pct = Math.floor((activeRandomEvent.progress / activeRandomEvent.required) * 100);
-            randomEventInfo.textContent = `Random Event: ${pct}% complete`;
+            randomEventInfo.textContent = `Bonus: ${activeRandomEvent.rewardText} - ${pct}%`;
             randomEventInfo.classList.remove('hidden');
         }
     }
@@ -1999,6 +2011,16 @@
         ctx.beginPath();
         ctx.arc(activeRandomEvent.x, activeRandomEvent.y, activeRandomEvent.radius, 0, Math.PI*2);
         ctx.stroke();
+
+        const ratio = Math.min(1, activeRandomEvent.progress / activeRandomEvent.required);
+        if (ratio > 0) {
+            ctx.fillStyle = 'rgba(0,255,0,0.3)';
+            ctx.beginPath();
+            ctx.moveTo(activeRandomEvent.x, activeRandomEvent.y);
+            ctx.arc(activeRandomEvent.x, activeRandomEvent.y, activeRandomEvent.radius, -Math.PI/2, -Math.PI/2 + Math.PI*2*ratio);
+            ctx.closePath();
+            ctx.fill();
+        }
     }
 
     function clearCanvas() {
@@ -2175,6 +2197,11 @@
         if (pauseScoreDisplay) pauseScoreDisplay.textContent = score;
         if (pauseLevelDisplay && player) pauseLevelDisplay.textContent = player.level;
         if (pauseKillsDisplay) pauseKillsDisplay.textContent = killCount;
+        if (pauseHpDisplay && player) pauseHpDisplay.textContent = Math.ceil(player.hp);
+        if (pauseMaxHpDisplay && player) pauseMaxHpDisplay.textContent = player.maxHp;
+        if (pauseDamageDisplay && player) pauseDamageDisplay.textContent = (player.baseDamage * (player.damageMultiplier || 1)).toFixed(1);
+        if (pauseFireRateDisplay && player) pauseFireRateDisplay.textContent = (player.shotsPerSecond || (1000 / player.fireRate)).toFixed(2);
+        if (pauseSpeedDisplay && player) pauseSpeedDisplay.textContent = (player.speed || player.baseSpeed).toFixed(2);
         if (pauseOverlay) pauseOverlay.classList.remove('hidden');
     }
 
