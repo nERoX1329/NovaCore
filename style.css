@@ -135,3 +135,9 @@
         #gameOverScreen h2 { color: #ff4757; text-shadow: 2px 2px 0px #8a2323; }
         #gameOverScreen p { color: var(--text-alt-color); font-size: 0.9em; }
 
+        .menu-row { margin-top: 10px; display: flex; gap: 8px; justify-content: center; align-items: center; }
+        .pause-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: var(--secondary-color); padding: 20px; border: 2px solid var(--primary-color); z-index: 150; text-align: center; }
+        #scoreboardList { list-style: none; padding: 0; }
+        #scoreboardList li { margin-bottom: 6px; }
+        .synergy-hint { box-shadow: 0 0 6px 2px gold; }
+

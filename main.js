@@ -1,7 +1,9 @@
     const screens = {
         startMenu: document.getElementById('startMenuScreen'),
         game: document.getElementById('gameScreen'),
-        gameOver: document.getElementById('gameOverScreen')
+        gameOver: document.getElementById('gameOverScreen'),
+        scoreboard: document.getElementById('scoreboardScreen'),
+        metaShop: document.getElementById('metaShopScreen')
     };
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas ? canvas.getContext('2d') : null;
@@ -21,6 +23,19 @@
 
     const startGameButton = document.getElementById('startGameButton');
     const restartGameButton = document.getElementById('restartGameButton');
+    const openMetaShopButton = document.getElementById('openMetaShopButton');
+    const openScoreboardButton = document.getElementById('openScoreboardButton');
+    const backToMenuButton = document.getElementById('backToMenuButton');
+    const backFromShopButton = document.getElementById('backFromShopButton');
+    const metaPointsDisplay = document.getElementById('metaPointsDisplay');
+    const metaUpgradesContainer = document.getElementById('metaUpgrades');
+    const scoreboardList = document.getElementById('scoreboardList');
+    const difficultySelect = document.getElementById('difficultySelect');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const resumeButton = document.getElementById('resumeButton');
+    const quitButton = document.getElementById('quitButton');
+    const pauseTimeDisplay = document.getElementById('pauseTimeDisplay');
+    const pauseScoreDisplay = document.getElementById('pauseScoreDisplay');
 
     if (canvas) { canvas.width = 800; canvas.height = 600; }
     let gameState = 'startMenu';
@@ -37,6 +52,14 @@
     let mouse = { x: 0, y: 0, down: false };
 
     let score = 0;
+    let runTime = 0;
+    let killCount = 0;
+    const metaPointsKey = 'nova_meta_points';
+    const scoreboardKey = 'nova_scoreboard';
+    const metaUpgradeKey = 'nova_meta_upgrades';
+    let metaPoints = parseInt(localStorage.getItem(metaPointsKey) || '0');
+    let scoreboardData = JSON.parse(localStorage.getItem(scoreboardKey) || '[]');
+    let metaUpgrades = JSON.parse(localStorage.getItem(metaUpgradeKey) || '{}');
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
     const BASE_REROLLS_PER_CHOICE = 3;
@@ -577,6 +600,10 @@
         };
         player.fireRate = 1000 / player.shotsPerSecond;
         player.baseMaxHp = player.maxHp;
+        if (metaUpgrades.hp_bonus) {
+            player.maxHp += metaUpgrades.hp_bonus * 10;
+            player.hp = player.maxHp;
+        }
     }
 
 
@@ -591,8 +618,10 @@
         } else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + size + 10;
         } else { x = -size -10 ; y = Math.random() * canvas.height; }
 
-        const speed = 0.5 + Math.random() * 0.5 + (player.level * 0.03);
-        const hp = Math.floor(10 + player.level * 5 + size * 0.5);
+        const minute = Math.floor(runTime / 60000);
+        const diffMul = player.difficultyMultiplier || 1;
+        const speed = (0.5 + Math.random() * 0.5 + (player.level * 0.03)) * (1 + minute * 0.1) * diffMul;
+        const hp = Math.floor((10 + player.level * 5 + size * 0.5) * (1 + minute * 0.1) * diffMul);
         const enemyColor1 = getCssVar('--enemy-color1') || '#FF0000';
         const enemyColor2 = getCssVar('--enemy-color2') || '#800080';
         const color = Math.random() < 0.5 ? enemyColor1 : enemyColor2;
@@ -1134,6 +1163,7 @@
 
         spawnXPOrb(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 10 + Math.floor(enemy.width));
         score += 10 + Math.floor(enemy.width);
+        killCount++;
 
         if (player.hpOnKill > 0) {
             player.hp = Math.min(player.maxHp, player.hp + (player.hpOnKill * (player.healingAmp || 1.0)));
@@ -1538,6 +1568,10 @@
             const card = document.createElement('div');
             card.classList.add('augmentation-card', `rarity-${aug.rarity}`);
             card.innerHTML = `<h4>${aug.name}</h4><p>${aug.description}</p><div class="rarity-text">${aug.rarity}</div>`;
+            if (player && player.augmentSynergizerActive) {
+                const count = player.activeAugmentations.filter(a => a.rarity === aug.rarity).length;
+                if ((count + 1) % 3 === 0) card.classList.add('synergy-hint');
+            }
             card.addEventListener('click', () => selectAugmentation(aug.id));
             augmentationChoicesContainer.appendChild(card);
         });
@@ -1789,6 +1823,7 @@
     function resetRunVariables() {
         bullets = []; enemies = []; xpOrbs = []; activeEffects = []; keys = {};
         score = 0; currentLevelXP = 0; xpToNextLevel = 40;
+        runTime = 0; killCount = 0;
         chosenSpecializations = []; // chosenAugmentations wurde entfernt, player.activeAugmentations ist jetzt maßgeblich
         initPlayer();
         if (player && enemies.length === 0) {
@@ -1803,6 +1838,7 @@
             return;
         }
         resetRunVariables();
+        player.difficultyMultiplier = parseFloat(difficultySelect ? difficultySelect.value : '1');
         gameRunning = true;
         gameState = 'game';
         switchScreen('game');
@@ -1816,6 +1852,13 @@
         gameState = 'gameOver';
         if(document.getElementById('finalScoreDisplay')) document.getElementById('finalScoreDisplay').textContent = score;
         if(document.getElementById('finalLevelDisplay')) document.getElementById('finalLevelDisplay').textContent = player ? player.level : '1';
+        scoreboardData.push({score, level: player ? player.level : 1, time: Math.floor(runTime/1000), kills: killCount});
+        scoreboardData.sort((a,b) => b.score - a.score);
+        scoreboardData = scoreboardData.slice(0,5);
+        localStorage.setItem(scoreboardKey, JSON.stringify(scoreboardData));
+        const earned = Math.floor(score / 100);
+        metaPoints += earned;
+        localStorage.setItem(metaPointsKey, metaPoints);
         switchScreen('gameOver');
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
@@ -1837,6 +1880,7 @@
         lastLoopTime = currentTime;
 
         if (gameRunning && gameState === 'game' && player) {
+            runTime += cappedDeltaTime;
             if (player.hpRegenRate > 0 && player.hp < player.maxHp) {
                 player.hp = Math.min(player.maxHp, player.hp + player.hpRegenRate * (cappedDeltaTime / 1000));
             }
@@ -1921,12 +1965,35 @@
         }
     }
 
+    function pauseGame() {
+        gameRunning = false;
+        gameState = 'paused_menu';
+        if (pauseTimeDisplay) pauseTimeDisplay.textContent = (runTime/1000).toFixed(1);
+        if (pauseScoreDisplay) pauseScoreDisplay.textContent = score;
+        if (pauseOverlay) pauseOverlay.classList.remove('hidden');
+    }
+
+    function resumeGame() {
+        gameState = 'game';
+        gameRunning = true;
+        if (pauseOverlay) pauseOverlay.classList.add('hidden');
+        lastLoopTime = performance.now();
+        if (!animationFrameId) animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
     document.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
         if ((gameState === 'game' || gameState.startsWith('paused_')) &&
             (key === ' ' || key.startsWith('arrow') || key === 'shift' || key === 'w' || key === 'a' || key === 's' || key === 'd')
            ) {
             e.preventDefault();
+        }
+        if (key === 'escape') {
+            if (gameState === 'game') {
+                pauseGame();
+            } else if (gameState === 'paused_menu') {
+                resumeGame();
+            }
         }
         keys[key] = true;
     });
@@ -1951,6 +2018,13 @@
         console.error("StartGameButton not found!");
     }
 
+    if (openMetaShopButton) openMetaShopButton.addEventListener('click', () => { updateMetaShopUI(); switchScreen('metaShop'); });
+    if (openScoreboardButton) openScoreboardButton.addEventListener('click', () => { updateScoreboardUI(); switchScreen('scoreboard'); });
+    if (backToMenuButton) backToMenuButton.addEventListener('click', () => switchScreen('startMenu'));
+    if (backFromShopButton) backFromShopButton.addEventListener('click', () => switchScreen('startMenu'));
+    if (resumeButton) resumeButton.addEventListener('click', resumeGame);
+    if (quitButton) quitButton.addEventListener('click', () => { gameOver(); });
+
     if (restartGameButton) {
         restartGameButton.addEventListener('click', startGame);
     } else {
@@ -1971,5 +2045,38 @@
         });
     }
 
+    function updateMetaShopUI() {
+        if (metaPointsDisplay) metaPointsDisplay.textContent = metaPoints;
+        if (!metaUpgradesContainer) return;
+        metaUpgradesContainer.innerHTML = '';
+        const hpCount = metaUpgrades.hp_bonus || 0;
+        const cost = 10;
+        const btn = document.createElement('button');
+        btn.textContent = `Buy +10 Max HP (${cost} MP) [Owned: ${hpCount}]`;
+        btn.disabled = metaPoints < cost;
+        btn.addEventListener('click', () => {
+            if (metaPoints >= cost) {
+                metaPoints -= cost;
+                metaUpgrades.hp_bonus = (metaUpgrades.hp_bonus || 0) + 1;
+                localStorage.setItem(metaPointsKey, metaPoints);
+                localStorage.setItem(metaUpgradeKey, JSON.stringify(metaUpgrades));
+                updateMetaShopUI();
+            }
+        });
+        metaUpgradesContainer.appendChild(btn);
+    }
+
+    function updateScoreboardUI() {
+        if (!scoreboardList) return;
+        scoreboardList.innerHTML = '';
+        scoreboardData.forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = `Score: ${r.score} | Lv ${r.level} | Time ${r.time}s | Kills ${r.kills}`;
+            scoreboardList.appendChild(li);
+        });
+    }
+
+    updateMetaShopUI();
+    updateScoreboardUI();
     switchScreen('startMenu');
 
