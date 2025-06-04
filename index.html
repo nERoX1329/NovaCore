@@ -12,6 +12,18 @@
         <h1>Nova Core: Genesis</h1>
         <p>A Basic Retro Shooter.</p>
         <button id="startGameButton">Start Game</button>
+        <div class="menu-row">
+            <button id="openMetaShopButton">Meta Shop</button>
+            <button id="openScoreboardButton">Scoreboard</button>
+        </div>
+        <div class="menu-row">
+            <label for="difficultySelect">Difficulty:</label>
+            <select id="difficultySelect">
+                <option value="1">Normal</option>
+                <option value="0.7">Easy</option>
+                <option value="1.5">Hard</option>
+            </select>
+        </div>
     </div>
 
     <div id="gameScreen" class="screen">
@@ -29,6 +41,13 @@
                 <button id="rerollButtonElement" disabled>Reroll (<span id="rerollsAvailableDisplay">0</span>)</button>
             </div>
         </div>
+        <div id="pauseOverlay" class="hidden pause-overlay">
+            <h3>Paused</h3>
+            <p>Time: <span id="pauseTimeDisplay">0</span></p>
+            <p>Score: <span id="pauseScoreDisplay">0</span></p>
+            <button id="resumeButton">Resume</button>
+            <button id="quitButton">Quit</button>
+        </div>
     </div>
 
     <div id="gameOverScreen" class="screen">
@@ -36,6 +55,19 @@
         <p>Final Score: <span id="finalScoreDisplay"></span></p>
         <p>Level Reached: <span id="finalLevelDisplay"></span></p>
         <button id="restartGameButton">Restart Run</button>
+    </div>
+
+    <div id="scoreboardScreen" class="screen">
+        <h2>Scoreboard</h2>
+        <ul id="scoreboardList"></ul>
+        <button id="backToMenuButton">Back</button>
+    </div>
+
+    <div id="metaShopScreen" class="screen">
+        <h2>Meta Shop</h2>
+        <p>Meta Points: <span id="metaPointsDisplay">0</span></p>
+        <div id="metaUpgrades"></div>
+        <button id="backFromShopButton">Back</button>
     </div>
 
 <script src="main.js"></script>
