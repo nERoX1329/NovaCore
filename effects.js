@@ -39,11 +39,18 @@ export function checkBulletCollisions(enemies, onHit) {
 }
 
 export function createExplosion(x, y) {
-  explosions.push({ x, y, r: 0 });
+  // explosions start small and expand until reaching maxR, then are removed
+  explosions.push({ x, y, r: 0, maxR: 30 });
 }
 
 export function updateExplosions(dt) {
-  explosions.forEach(ex => { ex.r += 100 * (dt / 1000); });
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    const ex = explosions[i];
+    ex.r += 100 * (dt / 1000);
+    if (ex.r > ex.maxR) {
+      explosions.splice(i, 1);
+    }
+  }
 }
 
 export function drawExplosions(ctx) {
