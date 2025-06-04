@@ -139,5 +139,12 @@
         .pause-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: var(--secondary-color); padding: 20px; border: 2px solid var(--primary-color); z-index: 150; text-align: center; }
         #scoreboardList { list-style: none; padding: 0; }
         #scoreboardList li { margin-bottom: 6px; }
-        .synergy-hint { box-shadow: 0 0 6px 2px gold; }
+.synergy-hint { box-shadow: 0 0 6px 2px gold; }
+
+.achievement-toast {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.8); color: #fff; padding: 8px 12px;
+    border: 2px solid var(--accent-color); z-index: 200;
+    font-size: 0.75em; box-shadow: 0 0 5px var(--accent-color);
+}
 
