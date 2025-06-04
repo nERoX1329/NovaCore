@@ -176,3 +176,15 @@
     color: var(--primary-color);
 }
 
+#metaUpgrades {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 15px;
+}
+#metaUpgrades button {
+    width: 100%;
+    box-sizing: border-box;
+}
