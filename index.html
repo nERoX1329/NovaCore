@@ -218,7 +218,8 @@
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
     const BASE_REROLLS_PER_CHOICE = 3;
-    let chosenizations = [];
+    // Track chosen class specializations for the current run
+    let chosenSpecializations = [];
 
     function getCssVar(varName) {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
