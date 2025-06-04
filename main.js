@@ -71,7 +71,7 @@
     let metaUpgrades = JSON.parse(localStorage.getItem(metaUpgradeKey) || '{}');
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
-    const UPGRADE_LIMIT = 5;
+    const UPGRADE_LIMIT = 10;
     let chosenUpgrades = [];
     const achievementsKey = 'nova_achievements';
     const unlockedClassesKey = 'nova_unlocked_classes';
@@ -653,9 +653,43 @@
         };
         player.fireRate = 1000 / player.shotsPerSecond;
         player.baseMaxHp = player.maxHp;
+
         if (metaUpgrades.hp_bonus) {
             player.maxHp += metaUpgrades.hp_bonus * 10;
             player.hp = player.maxHp;
+        }
+        if (metaUpgrades.dmg_bonus) {
+            player.damageMultiplier *= 1 + metaUpgrades.dmg_bonus * 0.05;
+        }
+        if (metaUpgrades.speed_bonus) {
+            player.speed *= 1 + metaUpgrades.speed_bonus * 0.02;
+            player.baseSpeed = player.speed;
+        }
+        if (metaUpgrades.firerate_bonus) {
+            player.shotsPerSecond *= 1 + metaUpgrades.firerate_bonus * 0.05;
+            player.fireRate = 1000 / player.shotsPerSecond;
+        }
+        if (metaUpgrades.xp_gain_bonus) {
+            player.xpGainMultiplier *= 1 + metaUpgrades.xp_gain_bonus * 0.05;
+        }
+        if (metaUpgrades.shield_bonus) {
+            if (!player.maxShield || player.maxShield === 0) {
+                player.maxShield = 0;
+                player.shield = 0;
+                player.shieldRechargeDelay = player.shieldRechargeDelay || 3000;
+                player.shieldRegenRate = player.shieldRegenRate || 0;
+            }
+            player.maxShield += metaUpgrades.shield_bonus * 10;
+            if (player.shieldRegenRate === 0 && player.maxShield > 0) {
+                player.shieldRegenRate = 0.05 * player.maxShield;
+            }
+            player.shield = Math.min(player.shield + metaUpgrades.shield_bonus * 10, player.maxShield);
+        }
+        if (metaUpgrades.crit_chance_bonus) {
+            player.critChance += metaUpgrades.crit_chance_bonus * 0.02;
+        }
+        if (metaUpgrades.luck_bonus) {
+            player.luckFactor *= 1 + metaUpgrades.luck_bonus * 0.05;
         }
     }
 
@@ -2222,21 +2256,35 @@
         if (metaPointsDisplay) metaPointsDisplay.textContent = metaPoints;
         if (!metaUpgradesContainer) return;
         metaUpgradesContainer.innerHTML = '';
-        const hpCount = metaUpgrades.hp_bonus || 0;
+
+        const upgrades = [
+            { key: 'hp_bonus', label: '+10 Max HP' },
+            { key: 'dmg_bonus', label: '+5% Damage' },
+            { key: 'speed_bonus', label: '+2% Speed' },
+            { key: 'firerate_bonus', label: '+5% Fire Rate' },
+            { key: 'xp_gain_bonus', label: '+5% XP Gain' },
+            { key: 'shield_bonus', label: '+10 Max Shield' },
+            { key: 'crit_chance_bonus', label: '+2% Crit Chance' },
+            { key: 'luck_bonus', label: '+5% Luck' }
+        ];
         const cost = 10;
-        const btn = document.createElement('button');
-        btn.textContent = `Buy +10 Max HP (${cost} MP) [Owned: ${hpCount}]`;
-        btn.disabled = metaPoints < cost;
-        btn.addEventListener('click', () => {
-            if (metaPoints >= cost) {
-                metaPoints -= cost;
-                metaUpgrades.hp_bonus = (metaUpgrades.hp_bonus || 0) + 1;
-                localStorage.setItem(metaPointsKey, metaPoints);
-                localStorage.setItem(metaUpgradeKey, JSON.stringify(metaUpgrades));
-                updateMetaShopUI();
-            }
+
+        upgrades.forEach(u => {
+            const count = metaUpgrades[u.key] || 0;
+            const btn = document.createElement('button');
+            btn.textContent = `Buy ${u.label} (${cost} MP) [Owned: ${count}]`;
+            btn.disabled = metaPoints < cost;
+            btn.addEventListener('click', () => {
+                if (metaPoints >= cost) {
+                    metaPoints -= cost;
+                    metaUpgrades[u.key] = (metaUpgrades[u.key] || 0) + 1;
+                    localStorage.setItem(metaPointsKey, metaPoints);
+                    localStorage.setItem(metaUpgradeKey, JSON.stringify(metaUpgrades));
+                    updateMetaShopUI();
+                }
+            });
+            metaUpgradesContainer.appendChild(btn);
         });
-        metaUpgradesContainer.appendChild(btn);
     }
 
     function updateScoreboardUI() {
