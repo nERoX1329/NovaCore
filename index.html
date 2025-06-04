@@ -173,8 +173,9 @@
         <p>Final Score: <span id="finalScoreDisplay"></span></p>
         <p>Level Reached: <span id="finalLevelDisplay"></span></p>
         <button id="restartGameButton">Restart Run</button>
-    </div>
+</div>
 
+<script src="src/effects.js"></script>
 <script>
     const screens = {
         startMenu: document.getElementById('startMenuScreen'),
@@ -796,14 +797,7 @@
         xpOrbs.push({ x, y, value: actualValue, size: 2 + Math.log2(actualValue + 1) * 0.7, speed: 2.5, color: getCssVar('--xp-orb-color') || '#40E0D0' });
     }
 
-    function createExplosion(x, y, radius, damage, ownerType = 'player', color = 'orange', duration = 300) {
-        activeEffects.push({
-            type: 'explosion', x, y, radius, currentRadius: 0, maxRadius: radius,
-            damage, ownerType, color, durationMs: duration, creationTime: Date.now(), // Verwende durationMs
-            damagedEnemies: []
-        });
-    }
-    // createBlackHoleEffect wurde entfernt
+    // createExplosion moved to external module
 
     function getWeightedRandomAugmentation(pool, currentOffer) {
         let availablePool = pool.filter(aug => {
@@ -1945,20 +1939,7 @@
         });
     }
 
-    function drawActiveEffects() {
-        if (!ctx) return;
-        activeEffects.forEach(effect => {
-            if (effect.type === 'explosion') {
-                ctx.fillStyle = effect.color;
-                ctx.beginPath();
-                ctx.arc(effect.x, effect.y, Math.max(0, effect.currentRadius), 0, Math.PI * 2);
-                ctx.globalAlpha = Math.max(0, effect.duration / (effect.creationTime + effect.durationMs - Date.now() + 1)); // +1 to avoid div by zero
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
-            // Blackhole drawing removed
-        });
-    }
+    // drawActiveEffects moved to external module
 
     function clearCanvas() {
         if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
