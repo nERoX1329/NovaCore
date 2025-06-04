@@ -148,3 +148,17 @@
     font-size: 0.75em; box-shadow: 0 0 5px var(--accent-color);
 }
 
+.random-event-info {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: var(--text-alt-color);
+    padding: 6px 10px;
+    border: 2px solid var(--primary-color);
+    z-index: 180;
+    font-size: 0.75em;
+    text-align: center;
+}
+
