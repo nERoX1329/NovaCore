@@ -11,6 +11,8 @@
     const gameUi = document.getElementById('gameUi');
     const levelDisplay = document.getElementById('levelDisplay');
     const scoreDisplay = document.getElementById('scoreDisplay');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const waveDisplay = document.getElementById('waveDisplay');
     const hpDisplay = document.getElementById('hpDisplay');
     const maxHpDisplay = document.getElementById('maxHpDisplay');
     const xpBarElement = document.getElementById('xpBar');
@@ -67,6 +69,8 @@
     let score = 0;
     let runTime = 0;
     let killCount = 0;
+    let waveCount = 1;
+    let nextWaveTime = 60000;
     let endlessMode = false;
     let nextBossMinute = 5;
     const metaPointsKey = 'nova_meta_points';
@@ -811,6 +815,17 @@
             isBoss: true,
             spawnTimer: 2000,
         });
+    }
+
+    function spawnWave(waveNumber) {
+        if (!player) return;
+        const numEnemies = 5 + waveNumber * 2;
+        for (let i = 0; i < numEnemies; i++) {
+            spawnEnemy();
+        }
+        if (waveNumber % 5 === 0) {
+            spawnBoss(waveNumber);
+        }
     }
 
     function spawnCircleEvent() {
@@ -1985,6 +2000,8 @@
         if(xpBarElement) xpBarElement.style.width = xpPercentage + '%';
         if(xpProgressTextElement) xpProgressTextElement.textContent = `${Math.max(0,currentLevelXP)}/${xpToNextLevel} XP`;
         if(upgradeCountDisplay) upgradeCountDisplay.textContent = chosenUpgrades.length;
+        if(timeDisplay) timeDisplay.textContent = (runTime/1000).toFixed(1);
+        if(waveDisplay) waveDisplay.textContent = waveCount;
     }
 
     function drawPlayer() {
@@ -2130,12 +2147,13 @@
         bullets = []; enemies = []; xpOrbs = []; activeEffects = []; keys = {};
         score = 0; currentLevelXP = 0; xpToNextLevel = 40;
         runTime = 0; killCount = 0; endlessMode = false; nextBossMinute = 5;
+        waveCount = 1; nextWaveTime = 60000;
         chosenUpgrades = [];
         activeRandomEvent = null; nextRandomEventTime = 30000;
         chosenSpecializations = []; // chosenAugmentations wurde entfernt, player.activeAugmentations ist jetzt maßgeblich
         initPlayer();
-        if (player && enemies.length === 0) {
-            for(let i=0; i<3; i++) spawnEnemy();
+        if (player) {
+            spawnWave(waveCount);
         }
         updateGameUI();
     }
@@ -2198,10 +2216,10 @@
                 nextRandomEventTime += 45000;
             }
             updateRandomEvent(cappedDeltaTime);
-            const minute = Math.floor(runTime / 60000);
-            if (minute >= nextBossMinute && !enemies.some(en => en.isBoss)) {
-                spawnBoss(nextBossMinute);
-                nextBossMinute += 5;
+            while (runTime >= nextWaveTime) {
+                waveCount++;
+                spawnWave(waveCount);
+                nextWaveTime += 60000;
             }
             if (player.hpRegenRate > 0 && player.hp < player.maxHp) {
                 player.hp = Math.min(player.maxHp, player.hp + player.hpRegenRate * (cappedDeltaTime / 1000));
