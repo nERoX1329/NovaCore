@@ -177,15 +177,15 @@
 }
 
 #metaUpgrades {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     width: 100%;
-    max-width: 600px;
+    max-width: 400px;
     margin-bottom: 15px;
 }
 #metaUpgrades button {
-    width: 100%;
+    width: auto;
     box-sizing: border-box;
 }
 
@@ -194,6 +194,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 4px;
+    width: 100%;
 }
 .meta-upgrade span:first-child {
     flex: 1;
