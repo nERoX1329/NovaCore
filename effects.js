@@ -30,8 +30,11 @@ export function checkBulletCollisions(enemies, onHit) {
       const e = enemies[j];
       const dist = Math.hypot(b.x - e.x, b.y - e.y);
       if (dist < e.size / 2) {
-        onHit(e, j);
+        e.hp -= b.damage || 10;
         bullets.splice(i, 1);
+        if (e.hp <= 0) {
+          onHit(e, j);
+        }
         break;
       }
     }
