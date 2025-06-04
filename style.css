@@ -192,10 +192,14 @@
 .meta-upgrade {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 4px;
+    gap: 6px;
     width: 100%;
+    justify-content: flex-start;
 }
 .meta-upgrade span:first-child {
     flex: 1;
+}
+.meta-upgrade span:not(:first-child) {
+    min-width: 60px;
+    text-align: center;
 }
