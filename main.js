@@ -27,13 +27,16 @@
     const openScoreboardButton = document.getElementById('openScoreboardButton');
     const backToMenuButton = document.getElementById('backToMenuButton');
     const backFromShopButton = document.getElementById('backFromShopButton');
+    const classSelect = document.getElementById('classSelect');
     const metaPointsDisplay = document.getElementById('metaPointsDisplay');
     const metaUpgradesContainer = document.getElementById('metaUpgrades');
     const scoreboardList = document.getElementById('scoreboardList');
     const difficultySelect = document.getElementById('difficultySelect');
     const pauseOverlay = document.getElementById('pauseOverlay');
     const resumeButton = document.getElementById('resumeButton');
+    const menuButton = document.getElementById('menuButton');
     const quitButton = document.getElementById('quitButton');
+    const gameOverMenuButton = document.getElementById('gameOverMenuButton');
     const pauseTimeDisplay = document.getElementById('pauseTimeDisplay');
     const pauseScoreDisplay = document.getElementById('pauseScoreDisplay');
 
@@ -54,12 +57,20 @@
     let score = 0;
     let runTime = 0;
     let killCount = 0;
+    let randomEvents = [];
+    let nextEventTime = 15000;
+    let bossActive = false;
+    let lastBossMinute = 0;
     const metaPointsKey = 'nova_meta_points';
     const scoreboardKey = 'nova_scoreboard';
     const metaUpgradeKey = 'nova_meta_upgrades';
+    const achievementKey = 'nova_achievements';
+    const purchasedClassesKey = 'nova_purchased_classes';
     let metaPoints = parseInt(localStorage.getItem(metaPointsKey) || '0');
     let scoreboardData = JSON.parse(localStorage.getItem(scoreboardKey) || '[]');
     let metaUpgrades = JSON.parse(localStorage.getItem(metaUpgradeKey) || '{}');
+    let achievements = JSON.parse(localStorage.getItem(achievementKey) || '{}');
+    let purchasedClasses = JSON.parse(localStorage.getItem(purchasedClassesKey) || '[]');
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
     const BASE_REROLLS_PER_CHOICE = 3;
@@ -388,7 +399,24 @@
             p.specializationsChosen = (p.specializationsChosen || 0) + 1;
             if (!chosenSpecializations.includes("class_divine_interventionist")) chosenSpecializations.push("class_divine_interventionist");
         }
-    }
+    } 
+    ];
+
+    const ACHIEVEMENTS = [
+        { id: 'ach_kill_100', desc: 'Kill 100 enemies in one run', check: () => killCount >= 100 },
+        { id: 'ach_hp_1000', desc: 'Reach 1000 max HP', check: () => player && player.maxHp >= 1000 },
+        { id: 'ach_proj_10', desc: 'Fire 10 projectiles at once', check: () => player && player.numProjectiles >= 10 }
+    ];
+
+    const CLASS_UNLOCKS = [
+        {classId: 'class_heavy_artillery', achievement: 'ach_kill_100', cost: 20},
+        {classId: 'class_bullet_virtuoso', achievement: 'ach_proj_10', cost: 30},
+        {classId: 'class_colossus_armor', achievement: 'ach_hp_1000', cost: 30}
+    ];
+
+    const SYNERGY_UPGRADES = [
+        { base: 'dmg_boost_s', level: 5, upgrade: { id:'dmg_synergy', name:'Damage Mastery', description:'+15% Damage', rarity:'Rare', synergy:true, apply: (p)=>{p.damageMultiplier=(p.damageMultiplier||1)+0.15;} } },
+        { base: 'hp_boost_s', level: 5, upgrade: { id:'hp_synergy', name:'Vitality Surge', description:'+50 Max HP', rarity:'Rare', synergy:true, apply:(p)=>{p.maxHp+=50; p.hp=Math.min(p.hp+50,p.maxHp);} } }
     ];
 
     const ALL_AUGMENTATIONS = [
@@ -597,6 +625,7 @@
             critAoeDamagePercent: 0, critAoeRadius: 30, critRicochetChance: 0, critRicochetDamageFactor: 0.5,
 
             phantomStrikeShotInterval: 0, phantomStrikeDamageFactor: 0.75, phantomStrikeCounter: 0,
+            augmentLevels: {}
         };
         player.fireRate = 1000 / player.shotsPerSecond;
         player.baseMaxHp = player.maxHp;
@@ -638,7 +667,40 @@
             isFrozen: false,
             freezeTimer: 0,
             uniqueId: uniqueId,
+            isBoss: false
         });
+    }
+
+    function spawnBoss() {
+        if (!player || !canvas) return;
+        const size = 60;
+        const x = canvas.width / 2 - size / 2;
+        const y = -size - 20;
+        const diffMul = player.difficultyMultiplier || 1;
+        const hp = 1000 * diffMul * (1 + Math.floor(runTime/60000));
+        enemies.push({
+            x, y, width: size, height: size,
+            speed: 0.6,
+            currentSpeed: 0.6,
+            hp, maxHp: hp,
+            color: 'gold',
+            angle: Math.PI/2,
+            isDefeated:false,
+            statusEffects:{active:{}},
+            isFrozen:false,
+            freezeTimer:0,
+            uniqueId: Math.random().toString(36).substr(2,9)+Date.now(),
+            isBoss: true
+        });
+        bossActive = true;
+    }
+
+    function spawnRandomEvent() {
+        if (!player || !canvas) return;
+        const radius = 40;
+        const x = Math.random() * (canvas.width - radius*2) + radius;
+        const y = Math.random() * (canvas.height - radius*2) + radius;
+        randomEvents.push({x,y,radius,stay:20000,progress:0,active:true});
     }
 
     function spawnXPOrb(x, y, value) {
@@ -1161,6 +1223,8 @@
         if (!player || !enemy || enemy.isDefeated) return; // Zusätzliche Prüfung für 'enemy'
         enemy.isDefeated = true;
 
+        if(enemy.isBoss) bossActive = false;
+
         spawnXPOrb(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 10 + Math.floor(enemy.width));
         score += 10 + Math.floor(enemy.width);
         killCount++;
@@ -1568,6 +1632,7 @@
             const card = document.createElement('div');
             card.classList.add('augmentation-card', `rarity-${aug.rarity}`);
             card.innerHTML = `<h4>${aug.name}</h4><p>${aug.description}</p><div class="rarity-text">${aug.rarity}</div>`;
+            if (aug.synergy) card.classList.add('synergy-hint');
             if (player && player.augmentSynergizerActive) {
                 const count = player.activeAugmentations.filter(a => a.rarity === aug.rarity).length;
                 if ((count + 1) % 3 === 0) card.classList.add('synergy-hint');
@@ -1586,6 +1651,8 @@
             if (!player.activeAugmentations.some(pa => pa.id === aug.id && pa.rarity === aug.rarity)) {
                 player.activeAugmentations.push({id: aug.id, rarity: aug.rarity});
             }
+            player.augmentLevels[aug.id] = (player.augmentLevels[aug.id] || 0) + 1;
+            checkSynergyUnlocks();
             if (player.augmentSynergizerActive) {
                 recalculateAugmentSynergy();
             }
@@ -1814,6 +1881,19 @@
             }
             // Blackhole drawing removed
         });
+        randomEvents.forEach(ev => {
+            if(!ctx) return;
+            ctx.strokeStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(ev.x, ev.y, ev.radius, 0, Math.PI*2);
+            ctx.stroke();
+            if(ev.progress > 0){
+                ctx.fillStyle = 'rgba(0,255,255,0.3)';
+                ctx.beginPath();
+                ctx.arc(ev.x, ev.y, ev.radius*(ev.progress/ev.stay),0,Math.PI*2);
+                ctx.fill();
+            }
+        });
     }
 
     function clearCanvas() {
@@ -1824,6 +1904,7 @@
         bullets = []; enemies = []; xpOrbs = []; activeEffects = []; keys = {};
         score = 0; currentLevelXP = 0; xpToNextLevel = 40;
         runTime = 0; killCount = 0;
+        randomEvents = []; nextEventTime = 15000; bossActive = false; lastBossMinute = 0;
         chosenSpecializations = []; // chosenAugmentations wurde entfernt, player.activeAugmentations ist jetzt maßgeblich
         initPlayer();
         if (player && enemies.length === 0) {
@@ -1838,6 +1919,14 @@
             return;
         }
         resetRunVariables();
+        if(classSelect && classSelect.value){
+            const sel = CLASS_SPECIALIZATIONS.find(s=>s.id===classSelect.value);
+            if(sel){
+                sel.apply(player);
+                player.activeAugmentations.push({id: sel.id, rarity: sel.rarity});
+            }
+        }
+        if(player) player.endlessMode = false;
         player.difficultyMultiplier = parseFloat(difficultySelect ? difficultySelect.value : '1');
         gameRunning = true;
         gameState = 'game';
@@ -1847,7 +1936,7 @@
         animationFrameId = requestAnimationFrame(gameLoop);
     }
 
-    function gameOver() {
+    function gameOver(showScreen = true) {
         gameRunning = false;
         gameState = 'gameOver';
         if(document.getElementById('finalScoreDisplay')) document.getElementById('finalScoreDisplay').textContent = score;
@@ -1856,14 +1945,20 @@
         scoreboardData.sort((a,b) => b.score - a.score);
         scoreboardData = scoreboardData.slice(0,5);
         localStorage.setItem(scoreboardKey, JSON.stringify(scoreboardData));
-        const earned = Math.floor(score / 100);
+        let earned = Math.floor(score / 100);
+        if(player && player.endlessMode) earned = 0;
         metaPoints += earned;
         localStorage.setItem(metaPointsKey, metaPoints);
-        switchScreen('gameOver');
+        if(showScreen) switchScreen('gameOver');
+        else switchScreen('startMenu');
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
         }
+    }
+
+    function quitToMenu(){
+        gameOver(false);
     }
 
     let lastLoopTime = 0; // Nur einmal global deklarieren
@@ -1881,6 +1976,33 @@
 
         if (gameRunning && gameState === 'game' && player) {
             runTime += cappedDeltaTime;
+            checkAchievements();
+            if(runTime > nextEventTime){
+                spawnRandomEvent();
+                nextEventTime = runTime + 30000;
+            }
+            randomEvents.forEach(ev=>{
+                const dx = player.x - ev.x;
+                const dy = player.y - ev.y;
+                if(Math.hypot(dx,dy) < ev.radius){
+                    ev.progress += cappedDeltaTime;
+                    if(ev.progress >= ev.stay && ev.active){
+                        player.numProjectiles += 1;
+                        setTimeout(()=>{player.numProjectiles = Math.max(1, player.numProjectiles-1);},10000);
+                        ev.active=false;
+                    }
+                } else {
+                    ev.progress = Math.max(0, ev.progress - cappedDeltaTime);
+                }
+            });
+            randomEvents = randomEvents.filter(ev => ev.active || ev.progress > 0);
+
+            const minute = Math.floor(runTime/60000);
+            if([5,10,15,20].includes(minute) && minute > lastBossMinute && !bossActive){
+                spawnBoss();
+                lastBossMinute = minute;
+            }
+            if(minute>=20) player.endlessMode = true;
             if (player.hpRegenRate > 0 && player.hp < player.maxHp) {
                 player.hp = Math.min(player.maxHp, player.hp + player.hpRegenRate * (cappedDeltaTime / 1000));
             }
@@ -1965,6 +2087,44 @@
         }
     }
 
+    function checkAchievements() {
+        let changed = false;
+        ACHIEVEMENTS.forEach(a => {
+            if (!achievements[a.id] && a.check()) {
+                achievements[a.id] = true;
+                changed = true;
+            }
+        });
+        if (changed) localStorage.setItem(achievementKey, JSON.stringify(achievements));
+    }
+
+    function updateClassSelectOptions() {
+        if (!classSelect) return;
+        classSelect.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'None';
+        classSelect.appendChild(option);
+        purchasedClasses.forEach(id => {
+            const spec = CLASS_SPECIALIZATIONS.find(s => s.id === id);
+            if (spec) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = spec.name;
+                classSelect.appendChild(opt);
+            }
+        });
+    }
+
+    function checkSynergyUnlocks() {
+        if (!player) return;
+        SYNERGY_UPGRADES.forEach(s => {
+            if (player.augmentLevels[s.base] >= s.level && !ALL_AUGMENTATIONS.find(a => a.id === s.upgrade.id)) {
+                ALL_AUGMENTATIONS.push(s.upgrade);
+            }
+        });
+    }
+
     function pauseGame() {
         gameRunning = false;
         gameState = 'paused_menu';
@@ -2023,7 +2183,9 @@
     if (backToMenuButton) backToMenuButton.addEventListener('click', () => switchScreen('startMenu'));
     if (backFromShopButton) backFromShopButton.addEventListener('click', () => switchScreen('startMenu'));
     if (resumeButton) resumeButton.addEventListener('click', resumeGame);
+    if (menuButton) menuButton.addEventListener('click', () => { quitToMenu(); });
     if (quitButton) quitButton.addEventListener('click', () => { gameOver(); });
+    if (gameOverMenuButton) gameOverMenuButton.addEventListener('click', () => { switchScreen('startMenu'); });
 
     if (restartGameButton) {
         restartGameButton.addEventListener('click', startGame);
@@ -2064,6 +2226,27 @@
             }
         });
         metaUpgradesContainer.appendChild(btn);
+
+        CLASS_UNLOCKS.forEach(cu => {
+            if (achievements[cu.achievement] && !purchasedClasses.includes(cu.classId)) {
+                const spec = CLASS_SPECIALIZATIONS.find(s => s.id === cu.classId);
+                if (!spec) return;
+                const b = document.createElement('button');
+                b.textContent = `Buy Class: ${spec.name} (${cu.cost} MP)`;
+                b.disabled = metaPoints < cu.cost;
+                b.addEventListener('click', () => {
+                    if (metaPoints >= cu.cost) {
+                        metaPoints -= cu.cost;
+                        purchasedClasses.push(cu.classId);
+                        localStorage.setItem(metaPointsKey, metaPoints);
+                        localStorage.setItem(purchasedClassesKey, JSON.stringify(purchasedClasses));
+                        updateMetaShopUI();
+                        updateClassSelectOptions();
+                    }
+                });
+                metaUpgradesContainer.appendChild(b);
+            }
+        });
     }
 
     function updateScoreboardUI() {
@@ -2077,6 +2260,7 @@
     }
 
     updateMetaShopUI();
+    updateClassSelectOptions();
     updateScoreboardUI();
     switchScreen('startMenu');
 
