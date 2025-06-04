@@ -91,7 +91,6 @@
     const BASE_REROLLS_PER_CHOICE = 3;
     // Track chosen class specializations for the current run
     let chosenSpecializations = [];
-    let selectedStartingSpecialization = null;
     let activeRandomEvent = null;
     let nextRandomEventTime = 30000;
 
@@ -145,6 +144,14 @@
             revert: (p) => { p.isInvulnerable = false; p.invulnerableTimer = 0; }
         }
     ];
+
+    const POWER_UP_MESSAGES = {
+        speed: '+25% Speed for 10s',
+        firerate: '+25% Fire Rate for 10s',
+        damage: '+25% Damage for 10s',
+        shield: '+20 Shield',
+        invuln: 'Invulnerable for 5s'
+    };
 
     function getCssVar(varName) {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -758,13 +765,6 @@
             player.luckFactor *= 1 + metaUpgrades.luck_bonus * 0.05;
         }
 
-        if (selectedStartingSpecialization) {
-            const spec = CLASS_SPECIALIZATIONS.find(s => s.id === selectedStartingSpecialization);
-            if (spec && isClassUnlocked(spec.id)) {
-                spec.apply(player);
-                if (!chosenSpecializations.includes(spec.id)) chosenSpecializations.push(spec.id);
-            }
-        }
     }
 
 
@@ -899,11 +899,18 @@
         for (let i = powerUps.length - 1; i >= 0; i--) {
             const p = powerUps[i];
             const dist = Math.hypot(player.x - p.x, player.y - p.y);
+            if (dist < 150) {
+                const pullStrength = 0.05;
+                p.x += (player.x - p.x) * pullStrength;
+                p.y += (player.y - p.y) * pullStrength;
+            }
             if (dist < player.radius + p.size) {
                 if (p.type.apply) p.type.apply(player);
                 if (p.type.duration && p.type.duration > 0) {
                     player.tempEffects.push({ timer: p.type.duration, revert: p.type.revert });
                 }
+                const msg = POWER_UP_MESSAGES[p.type.id];
+                if (msg) showAchievement(msg);
                 powerUps.splice(i,1);
             }
         }
@@ -2174,16 +2181,13 @@
             console.error("Canvas or Context not found! Game cannot start.");
             return;
         }
-        if (startingSpecSelect) {
-            const val = startingSpecSelect.value;
-            selectedStartingSpecialization = val ? val : null;
-        }
         resetRunVariables();
         nextBossMinute = 5;
         player.difficultyMultiplier = parseFloat(difficultySelect ? difficultySelect.value : '1');
-        gameRunning = true;
-        gameState = 'game';
+        gameRunning = false;
+        gameState = 'paused_class_choice';
         switchScreen('game');
+        showSpecializationChoiceScreen();
         lastLoopTime = performance.now();
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(gameLoop);
