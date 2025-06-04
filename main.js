@@ -35,10 +35,10 @@ function gameLoop() {
   player.update(dt, keys, mouse, bullets);
   updateBullets(dt, canvas);
   updateEnemies(dt, player, canvas);
-  checkBulletCollisions(enemies, idx => {
+  checkBulletCollisions(enemies, (enemy, idx) => {
     enemies.splice(idx, 1);
     score += 10;
-    createExplosion(player.x, player.y);
+    createExplosion(enemy.x, enemy.y);
   });
   updateExplosions(dt);
 
