@@ -750,6 +750,11 @@
         if (metaUpgrades.luck_bonus) {
             player.luckFactor *= 1 + metaUpgrades.luck_bonus * 0.05;
         }
+        if (metaUpgrades.overclock_synergy) {
+            player.damageMultiplier *= 1.10;
+            player.shotsPerSecond *= 1.10;
+            player.fireRate = 1000 / player.shotsPerSecond;
+        }
     }
 
 
@@ -2386,19 +2391,23 @@
         metaUpgradesContainer.innerHTML = '';
 
         const upgrades = [
-            { key: 'hp_bonus', label: '+10 Max HP' },
-            { key: 'dmg_bonus', label: '+5% Damage' },
-            { key: 'speed_bonus', label: '+2% Speed' },
-            { key: 'firerate_bonus', label: '+5% Fire Rate' },
-            { key: 'xp_gain_bonus', label: '+5% XP Gain' },
-            { key: 'shield_bonus', label: '+10 Max Shield' },
-            { key: 'crit_chance_bonus', label: '+2% Crit Chance' },
-            { key: 'luck_bonus', label: '+5% Luck' }
+            { key: 'hp_bonus', label: '+10 Max HP', baseCost: 10 },
+            { key: 'dmg_bonus', label: '+5% Damage', baseCost: 10 },
+            { key: 'speed_bonus', label: '+2% Speed', baseCost: 10 },
+            { key: 'firerate_bonus', label: '+5% Fire Rate', baseCost: 10 },
+            { key: 'xp_gain_bonus', label: '+5% XP Gain', baseCost: 10 },
+            { key: 'shield_bonus', label: '+10 Max Shield', baseCost: 10 },
+            { key: 'crit_chance_bonus', label: '+2% Crit Chance', baseCost: 10 },
+            { key: 'luck_bonus', label: '+5% Luck', baseCost: 10 }
         ];
-        const cost = 10;
+
+        if ((metaUpgrades.firerate_bonus || 0) >= 5 && (metaUpgrades.dmg_bonus || 0) >= 5) {
+            upgrades.push({ key: 'overclock_synergy', label: 'Synergy: Overclock (+10% Damage & Fire Rate)', baseCost: 100, maxLevel: 1 });
+        }
 
         upgrades.forEach(u => {
             const count = metaUpgrades[u.key] || 0;
+            const nextCost = u.baseCost * (count + 1);
             const row = document.createElement('div');
             row.className = 'meta-upgrade';
 
@@ -2407,10 +2416,10 @@
 
             const buyBtn = document.createElement('button');
             buyBtn.textContent = 'Buy';
-            buyBtn.disabled = metaPoints < cost;
+            buyBtn.disabled = metaPoints < nextCost || (u.maxLevel && count >= u.maxLevel);
             buyBtn.addEventListener('click', () => {
-                if (metaPoints >= cost) {
-                    metaPoints -= cost;
+                if (metaPoints >= nextCost) {
+                    metaPoints -= nextCost;
                     metaUpgrades[u.key] = (metaUpgrades[u.key] || 0) + 1;
                     localStorage.setItem(metaPointsKey, metaPoints);
                     localStorage.setItem(metaUpgradeKey, JSON.stringify(metaUpgrades));
@@ -2422,7 +2431,7 @@
             ownedSpan.textContent = `Lv ${count}`;
 
             const costSpan = document.createElement('span');
-            costSpan.textContent = `${cost} MP`;
+            costSpan.textContent = u.maxLevel && count >= u.maxLevel ? 'Max' : `${nextCost} MP`;
 
             row.appendChild(nameSpan);
             row.appendChild(buyBtn);
