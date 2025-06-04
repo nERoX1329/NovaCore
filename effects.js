@@ -13,11 +13,11 @@ export function updateBullets(dt, canvas) {
 }
 
 export function drawBullets(ctx) {
-  ctx.fillStyle = '#ffff00';
   bullets.forEach(b => {
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(b.angle + Math.PI / 2);
+    ctx.fillStyle = b.type === 'rocket' ? '#ff5722' : '#ffff00';
     ctx.fillRect(-2, -8, 4, 16);
     ctx.restore();
   });
@@ -30,10 +30,24 @@ export function checkBulletCollisions(enemies, onHit) {
       const e = enemies[j];
       const dist = Math.hypot(b.x - e.x, b.y - e.y);
       if (dist < e.size / 2) {
-        e.hp -= b.damage || 10;
         bullets.splice(i, 1);
-        if (e.hp <= 0) {
-          onHit(e, j);
+        if (b.type === 'rocket') {
+          createExplosion(e.x, e.y);
+          for (let k = enemies.length - 1; k >= 0; k--) {
+            const exE = enemies[k];
+            const d2 = Math.hypot(e.x - exE.x, e.y - exE.y);
+            if (d2 < (b.explosionRadius || 30)) {
+              exE.hp -= b.damage || 10;
+              if (exE.hp <= 0) {
+                onHit(exE, k);
+              }
+            }
+          }
+        } else {
+          e.hp -= b.damage || 10;
+          if (e.hp <= 0) {
+            onHit(e, j);
+          }
         }
         break;
       }
