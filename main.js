@@ -36,6 +36,12 @@
     const quitButton = document.getElementById('quitButton');
     const pauseTimeDisplay = document.getElementById('pauseTimeDisplay');
     const pauseScoreDisplay = document.getElementById('pauseScoreDisplay');
+    const pauseLevelDisplay = document.getElementById('pauseLevelDisplay');
+    const pauseKillsDisplay = document.getElementById('pauseKillsDisplay');
+    const upgradeCountDisplay = document.getElementById('upgradeCountDisplay');
+    const achievementToast = document.getElementById('achievementToast');
+    const pauseMainMenuButton = document.getElementById('pauseMainMenuButton');
+    const gameOverMenuButton = document.getElementById('gameOverMenuButton');
 
     if (canvas) { canvas.width = 800; canvas.height = 600; }
     let gameState = 'startMenu';
@@ -54,6 +60,8 @@
     let score = 0;
     let runTime = 0;
     let killCount = 0;
+    let endlessMode = false;
+    let nextBossMinute = 5;
     const metaPointsKey = 'nova_meta_points';
     const scoreboardKey = 'nova_scoreboard';
     const metaUpgradeKey = 'nova_meta_upgrades';
@@ -62,9 +70,17 @@
     let metaUpgrades = JSON.parse(localStorage.getItem(metaUpgradeKey) || '{}');
     let currentLevelXP = 0;
     let xpToNextLevel = 40;
+    const UPGRADE_LIMIT = 5;
+    let chosenUpgrades = [];
+    const achievementsKey = 'nova_achievements';
+    const unlockedClassesKey = 'nova_unlocked_classes';
+    let unlockedAchievements = JSON.parse(localStorage.getItem(achievementsKey) || '[]');
+    let unlockedClasses = JSON.parse(localStorage.getItem(unlockedClassesKey) || '[]');
     const BASE_REROLLS_PER_CHOICE = 3;
     // Track chosen class specializations for the current run
     let chosenSpecializations = [];
+    let activeRandomEvent = null;
+    let nextRandomEventTime = 30000;
 
     function getCssVar(varName) {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -88,6 +104,7 @@
     },
     {
         id: "class_heavy_artillery",
+        unlockAchievement: 'ach_1000_hp',
         name: "Heavy Artillery",
         description: "<span class='positive'>+80% Damage, Projectiles Pierce +2 enemies, +15% Max HP.</span>",
         rarity: "Legendary",
@@ -103,6 +120,7 @@
     },
     {
         id: "class_spreadshot_master",
+        unlockAchievement: 'ach_10_projectiles',
         name: "Spreadshot Master",
         description: "<span class='positive'>+4 Projectiles, Projectile Spread slightly increased (+10°), +15% Projectile Speed.</span>",
         rarity: "Legendary",
@@ -116,6 +134,7 @@
     },
     {
         id: "class_apex_predator",
+        unlockAchievement: 'ach_10000_kills',
         name: "Apex Predator",
         description: "<span class='positive'>+25% Critical Hit Chance, +125% Critical Hit Damage.</span>",
         rarity: "Legendary",
@@ -388,8 +407,41 @@
             p.specializationsChosen = (p.specializationsChosen || 0) + 1;
             if (!chosenSpecializations.includes("class_divine_interventionist")) chosenSpecializations.push("class_divine_interventionist");
         }
-    }
+    } 
     ];
+
+    const ACHIEVEMENTS = [
+        { id: 'ach_10_projectiles', name: 'More Dakka', check: () => player && player.numProjectiles >= 10, unlocks: 'class_spreadshot_master' },
+        { id: 'ach_1000_hp', name: 'Tank Mode', check: () => player && player.maxHp >= 1000, unlocks: 'class_heavy_artillery' },
+        { id: 'ach_10000_kills', name: 'Endless Slayer', check: () => killCount >= 10000, unlocks: 'class_apex_predator' }
+    ];
+
+    function isClassUnlocked(classId) {
+        const spec = CLASS_SPECIALIZATIONS.find(c => c.id === classId);
+        if (!spec || !spec.unlockAchievement) return true;
+        return unlockedClasses.includes(classId);
+    }
+
+    function showAchievement(message) {
+        if (!achievementToast) return;
+        achievementToast.textContent = message;
+        achievementToast.classList.remove('hidden');
+        setTimeout(() => { achievementToast.classList.add('hidden'); }, 3000);
+    }
+
+    function checkAchievements() {
+        ACHIEVEMENTS.forEach(a => {
+            if (!unlockedAchievements.includes(a.id) && a.check()) {
+                unlockedAchievements.push(a.id);
+                localStorage.setItem(achievementsKey, JSON.stringify(unlockedAchievements));
+                if (a.unlocks && !unlockedClasses.includes(a.unlocks)) {
+                    unlockedClasses.push(a.unlocks);
+                    localStorage.setItem(unlockedClassesKey, JSON.stringify(unlockedClasses));
+                }
+                showAchievement(`Achievement Unlocked: ${a.name}`);
+            }
+        });
+    }
 
     const ALL_AUGMENTATIONS = [
         // Common
@@ -609,7 +661,9 @@
 
     function spawnEnemy() {
         if (!player || !canvas) return;
-        const size = 15 + Math.random() * 10;
+        const minute = Math.floor(runTime / 60000);
+        const phase = Math.min(minute, 4);
+        const size = 15 + Math.random() * 10 + phase * 2;
         const side = Math.floor(Math.random() * 4);
         let x, y;
 
@@ -618,12 +672,11 @@
         } else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + size + 10;
         } else { x = -size -10 ; y = Math.random() * canvas.height; }
 
-        const minute = Math.floor(runTime / 60000);
         const diffMul = player.difficultyMultiplier || 1;
         const speed = (0.5 + Math.random() * 0.5 + (player.level * 0.03)) * (1 + minute * 0.1) * diffMul;
-        const hp = Math.floor((10 + player.level * 5 + size * 0.5) * (1 + minute * 0.1) * diffMul);
-        const enemyColor1 = getCssVar('--enemy-color1') || '#FF0000';
-        const enemyColor2 = getCssVar('--enemy-color2') || '#800080';
+        const hp = Math.floor((10 + player.level * 5 + size * 0.5) * (1 + minute * 0.1 + phase * 0.2) * diffMul);
+        const enemyColor1 = ['#ff4757','#7b1fa2','#ffd700','#00c8ff','#ff66ff'][phase] || '#ff4757';
+        const enemyColor2 = ['#7b1fa2','#ff4757','#00c8ff','#ffd700','#ffaa00'][phase] || '#7b1fa2';
         const color = Math.random() < 0.5 ? enemyColor1 : enemyColor2;
         const uniqueId = Math.random().toString(36).substr(2, 9) + Date.now();
 
@@ -638,7 +691,52 @@
             isFrozen: false,
             freezeTimer: 0,
             uniqueId: uniqueId,
+            isBoss: false,
         });
+    }
+
+    function spawnBoss(minuteMark) {
+        if (!player || !canvas) return;
+        const size = 80;
+        const x = canvas.width / 2 - size / 2;
+        const y = -size - 20;
+        const diffMul = player.difficultyMultiplier || 1;
+        const hp = 500 * minuteMark * diffMul;
+        enemies.push({
+            x, y, width: size, height: size,
+            speed: 0.6 * diffMul,
+            currentSpeed: 0.6 * diffMul,
+            hp, maxHp: hp,
+            color: '#ffcc00',
+            angle: Math.PI / 2,
+            isDefeated: false,
+            statusEffects: { active: {} },
+            isFrozen: false,
+            freezeTimer: 0,
+            uniqueId: 'boss_' + minuteMark + '_' + Date.now(),
+            isBoss: true,
+            spawnTimer: 2000,
+        });
+    }
+
+    function spawnCircleEvent() {
+        if (!player || !canvas) return;
+        activeRandomEvent = { x: Math.random()*canvas.width, y: Math.random()*canvas.height, radius: 40, progress: 0, required: 20000 };
+    }
+
+    function updateRandomEvent(dT) {
+        if (!activeRandomEvent || !player) return;
+        const dist = Math.hypot(player.x - activeRandomEvent.x, player.y - activeRandomEvent.y);
+        if (dist < activeRandomEvent.radius) {
+            activeRandomEvent.progress += dT;
+            if (activeRandomEvent.progress >= activeRandomEvent.required) {
+                player.tempExtraProjectiles = { amount: 2, timer: 15000 };
+                player.numProjectiles += 2;
+                activeRandomEvent = null;
+            }
+        } else if (activeRandomEvent.progress > 0) {
+            activeRandomEvent.progress = Math.max(0, activeRandomEvent.progress - dT);
+        }
     }
 
     function spawnXPOrb(x, y, value) {
@@ -705,6 +803,13 @@
 
     function updatePlayer(dT) {
         if (!player) return;
+        if (player.tempExtraProjectiles) {
+            player.tempExtraProjectiles.timer -= dT;
+            if (player.tempExtraProjectiles.timer <= 0) {
+                player.numProjectiles = Math.max(player.baseNumProjectiles, player.numProjectiles - player.tempExtraProjectiles.amount);
+                player.tempExtraProjectiles = null;
+            }
+        }
 
         if (player.dashTimer > 0 && !player.isDashing) {
              player.dashTimer -= dT;
@@ -990,6 +1095,16 @@
                 if (e.hp <= 0) { handleEnemyDefeat(e, i, 'poison_dot'); continue; }
             }
 
+            if (e.isBoss) {
+                if (e.spawnTimer > 0) {
+                    e.spawnTimer -= dT;
+                    if (e.spawnTimer <= 0) {
+                        for (let s = 0; s < 3; s++) spawnEnemy();
+                        e.spawnTimer = 2000;
+                    }
+                }
+            }
+
             if (e.currentSpeed > 0) {
                 const dxToPlayer = player.x - (e.x + e.width / 2);
                 const dyToPlayer = player.y - (e.y + e.height / 2);
@@ -1164,6 +1279,7 @@
         spawnXPOrb(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 10 + Math.floor(enemy.width));
         score += 10 + Math.floor(enemy.width);
         killCount++;
+        checkAchievements();
 
         if (player.hpOnKill > 0) {
             player.hp = Math.min(player.maxHp, player.hp + (player.hpOnKill * (player.healingAmp || 1.0)));
@@ -1469,11 +1585,18 @@
             player.baseMaxHp = player.maxHp;
 
             player.hp = Math.min(player.hp, player.maxHp);
-            player.ultimateSacrificePending = false;
-            console.log("Ultimate Sacrifice vollzogen!");
-        }
+        player.ultimateSacrificePending = false;
+        console.log("Ultimate Sacrifice vollzogen!");
+    }
 
-        gameRunning = false;
+    gameRunning = false;
+    if (chosenUpgrades.length >= UPGRADE_LIMIT) {
+        gameRunning = true;
+        gameState = 'game';
+        lastLoopTime = performance.now();
+        if(!animationFrameId) animationFrameId = requestAnimationFrame(gameLoop);
+        return;
+    }
 
           const MAX_SPECIALIZATIONS_TO_CHOOSE = 10; 
 
@@ -1509,7 +1632,7 @@
         augmentationChoicesContainer.innerHTML = '';
         augmentationPanelTitle.textContent = "Choose Your Specialization!";
 
-        const availableClasses = CLASS_SPECIALIZATIONS.filter(spec => !chosenSpecializations.includes(spec.id));
+        const availableClasses = CLASS_SPECIALIZATIONS.filter(spec => !chosenSpecializations.includes(spec.id) && isClassUnlocked(spec.id));
         const shuffledClasses = [...availableClasses].sort(() => 0.5 - Math.random());
         const offeredClasses = shuffledClasses.slice(0, Math.min(3, availableClasses.length));
 
@@ -1527,6 +1650,7 @@
 
     function showAugmentationChoiceScreen() {
         if (!augmentationChoicesContainer || !augmentationChoicePanel || !player) return;
+        if (chosenUpgrades.length >= UPGRADE_LIMIT) { finishUpgradeSelection(); return; }
         augmentationPanelTitle.textContent = "Choose Upgrade!";
         augmentationChoicesContainer.innerHTML = '';
         let offeredAugs = [];
@@ -1589,6 +1713,8 @@
             if (player.augmentSynergizerActive) {
                 recalculateAugmentSynergy();
             }
+            chosenUpgrades.push(aug.id);
+            updateGameUI();
         }
         finishUpgradeSelection();
     }
@@ -1697,6 +1823,7 @@
         const xpPercentage = Math.max(0, Math.min(100, (currentLevelXP / xpToNextLevel) * 100));
         if(xpBarElement) xpBarElement.style.width = xpPercentage + '%';
         if(xpProgressTextElement) xpProgressTextElement.textContent = `${Math.max(0,currentLevelXP)}/${xpToNextLevel} XP`;
+        if(upgradeCountDisplay) upgradeCountDisplay.textContent = chosenUpgrades.length;
     }
 
     function drawPlayer() {
@@ -1816,6 +1943,14 @@
         });
     }
 
+    function drawRandomEvent() {
+        if (!ctx || !activeRandomEvent) return;
+        ctx.strokeStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(activeRandomEvent.x, activeRandomEvent.y, activeRandomEvent.radius, 0, Math.PI*2);
+        ctx.stroke();
+    }
+
     function clearCanvas() {
         if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
@@ -1823,7 +1958,9 @@
     function resetRunVariables() {
         bullets = []; enemies = []; xpOrbs = []; activeEffects = []; keys = {};
         score = 0; currentLevelXP = 0; xpToNextLevel = 40;
-        runTime = 0; killCount = 0;
+        runTime = 0; killCount = 0; endlessMode = false; nextBossMinute = 5;
+        chosenUpgrades = [];
+        activeRandomEvent = null; nextRandomEventTime = 30000;
         chosenSpecializations = []; // chosenAugmentations wurde entfernt, player.activeAugmentations ist jetzt maßgeblich
         initPlayer();
         if (player && enemies.length === 0) {
@@ -1838,6 +1975,7 @@
             return;
         }
         resetRunVariables();
+        nextBossMinute = 5;
         player.difficultyMultiplier = parseFloat(difficultySelect ? difficultySelect.value : '1');
         gameRunning = true;
         gameState = 'game';
@@ -1856,7 +1994,7 @@
         scoreboardData.sort((a,b) => b.score - a.score);
         scoreboardData = scoreboardData.slice(0,5);
         localStorage.setItem(scoreboardKey, JSON.stringify(scoreboardData));
-        const earned = Math.floor(score / 100);
+        const earned = endlessMode ? 0 : Math.floor(score / 100);
         metaPoints += earned;
         localStorage.setItem(metaPointsKey, metaPoints);
         switchScreen('gameOver');
@@ -1881,6 +2019,19 @@
 
         if (gameRunning && gameState === 'game' && player) {
             runTime += cappedDeltaTime;
+            if (!endlessMode && runTime >= 20 * 60000) {
+                endlessMode = true;
+            }
+            if (runTime >= nextRandomEventTime && !activeRandomEvent) {
+                spawnCircleEvent();
+                nextRandomEventTime += 45000;
+            }
+            updateRandomEvent(cappedDeltaTime);
+            const minute = Math.floor(runTime / 60000);
+            if (minute >= nextBossMinute && !enemies.some(en => en.isBoss)) {
+                spawnBoss(nextBossMinute);
+                nextBossMinute += 5;
+            }
             if (player.hpRegenRate > 0 && player.hp < player.maxHp) {
                 player.hp = Math.min(player.maxHp, player.hp + player.hpRegenRate * (cappedDeltaTime / 1000));
             }
@@ -1933,6 +2084,7 @@
             updateXPOrbs(cappedDeltaTime);
             updateActiveEffects(cappedDeltaTime);
             checkCollisions();
+            checkAchievements();
         }
 
         clearCanvas();
@@ -1941,6 +2093,7 @@
         drawBullets();
         drawXPOrbs();
         drawActiveEffects();
+        drawRandomEvent();
         if (player) updateGameUI();
     }
 
@@ -1970,6 +2123,8 @@
         gameState = 'paused_menu';
         if (pauseTimeDisplay) pauseTimeDisplay.textContent = (runTime/1000).toFixed(1);
         if (pauseScoreDisplay) pauseScoreDisplay.textContent = score;
+        if (pauseLevelDisplay && player) pauseLevelDisplay.textContent = player.level;
+        if (pauseKillsDisplay) pauseKillsDisplay.textContent = killCount;
         if (pauseOverlay) pauseOverlay.classList.remove('hidden');
     }
 
@@ -2024,6 +2179,8 @@
     if (backFromShopButton) backFromShopButton.addEventListener('click', () => switchScreen('startMenu'));
     if (resumeButton) resumeButton.addEventListener('click', resumeGame);
     if (quitButton) quitButton.addEventListener('click', () => { gameOver(); });
+    if (pauseMainMenuButton) pauseMainMenuButton.addEventListener('click', () => { switchScreen('startMenu'); });
+    if (gameOverMenuButton) gameOverMenuButton.addEventListener('click', () => { switchScreen('startMenu'); });
 
     if (restartGameButton) {
         restartGameButton.addEventListener('click', startGame);

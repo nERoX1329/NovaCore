@@ -33,6 +33,7 @@
             <div>Score: <span id="scoreDisplay">0</span></div>
             <div class="xp-bar-container"><div id="xpBar"></div><span id="xpProgressText">0/100 XP</span></div>
             <div>HP: <span id="hpDisplay">100</span>/<span id="maxHpDisplay">100</span></div>
+            <div>Upgrades: <span id="upgradeCountDisplay">0</span>/5</div>
         </div>
         <div id="augmentationChoicePanel" class="hidden">
             <h3 id="augmentationPanelTitle">Choose Upgrade!</h3>
@@ -45,8 +46,11 @@
             <h3>Paused</h3>
             <p>Time: <span id="pauseTimeDisplay">0</span></p>
             <p>Score: <span id="pauseScoreDisplay">0</span></p>
+            <p>Level: <span id="pauseLevelDisplay">1</span></p>
+            <p>Kills: <span id="pauseKillsDisplay">0</span></p>
             <button id="resumeButton">Resume</button>
             <button id="quitButton">Quit</button>
+            <button id="pauseMainMenuButton">Main Menu</button>
         </div>
     </div>
 
@@ -55,6 +59,7 @@
         <p>Final Score: <span id="finalScoreDisplay"></span></p>
         <p>Level Reached: <span id="finalLevelDisplay"></span></p>
         <button id="restartGameButton">Restart Run</button>
+        <button id="gameOverMenuButton">Back to Main Menu</button>
     </div>
 
     <div id="scoreboardScreen" class="screen">
@@ -69,6 +74,8 @@
         <div id="metaUpgrades"></div>
         <button id="backFromShopButton">Back</button>
     </div>
+
+    <div id="achievementToast" class="hidden achievement-toast"></div>
 
 <script src="main.js"></script>
 </body>
