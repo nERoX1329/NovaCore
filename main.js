@@ -75,3 +75,45 @@ canvas.addEventListener('mousedown', () => { mouse.down = true; });
 canvas.addEventListener('mouseup', () => { mouse.down = false; });
 
 document.getElementById('startGameButton').addEventListener('click', startGame);
+
+// menu navigation handlers
+const openMetaShopButton = document.getElementById('openMetaShopButton');
+if (openMetaShopButton) {
+  openMetaShopButton.addEventListener('click', () => {
+    showScreen('metaShopScreen');
+  });
+}
+
+const openScoreboardButton = document.getElementById('openScoreboardButton');
+if (openScoreboardButton) {
+  openScoreboardButton.addEventListener('click', () => {
+    showScreen('scoreboardScreen');
+  });
+}
+
+const backToMenuButton = document.getElementById('backToMenuButton');
+if (backToMenuButton) {
+  backToMenuButton.addEventListener('click', () => {
+    showScreen('startMenuScreen');
+  });
+}
+
+const backFromShopButton = document.getElementById('backFromShopButton');
+if (backFromShopButton) {
+  backFromShopButton.addEventListener('click', () => {
+    showScreen('startMenuScreen');
+  });
+}
+
+const restartGameButton = document.getElementById('restartGameButton');
+if (restartGameButton) {
+  restartGameButton.addEventListener('click', startGame);
+}
+
+const gameOverMenuButton = document.getElementById('gameOverMenuButton');
+if (gameOverMenuButton) {
+  gameOverMenuButton.addEventListener('click', () => {
+    showScreen('startMenuScreen');
+  });
+}
+
