@@ -16,6 +16,9 @@ export class Player {
     this.angle = -Math.PI / 2;
     this.lastShot = 0;
     this.needsUpgrade = false;
+    this.weapon = 'normal';
+    this.upgrades = [];
+    this.synergies = [];
   }
 
   update(dt, keys, mouse, bullets) {
@@ -35,19 +38,60 @@ export class Player {
     this.angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
 
     if ((keys[' '] || mouse.down) && Date.now() - this.lastShot > this.fireRate) {
+      this.shoot(bullets);
+      this.lastShot = Date.now();
+    }
+
+    this.x = Math.max(this.radius, Math.min(this.canvas.width - this.radius, this.x));
+    this.y = Math.max(this.radius, Math.min(this.canvas.height - this.radius, this.y));
+  }
+
+  shoot(bullets) {
+    if (this.weapon === 'spread') {
+      const spreadAngles = [this.angle - 0.2, this.angle, this.angle + 0.2];
+      spreadAngles.forEach(a => bullets.push({
+        x: this.x,
+        y: this.y,
+        angle: a,
+        speed: 400,
+        owner: 'player',
+        damage: this.damage,
+        type: 'normal'
+      }));
+    } else if (this.weapon === 'rocket') {
+      bullets.push({
+        x: this.x,
+        y: this.y,
+        angle: this.angle,
+        speed: 350,
+        owner: 'player',
+        damage: this.damage,
+        type: 'rocket',
+        explosionRadius: 40
+      });
+    } else if (this.weapon === 'rocket-spread') {
+      const spreadAngles = [this.angle - 0.2, this.angle, this.angle + 0.2];
+      spreadAngles.forEach(a => bullets.push({
+        x: this.x,
+        y: this.y,
+        angle: a,
+        speed: 350,
+        owner: 'player',
+        damage: this.damage,
+        type: 'rocket',
+        explosionRadius: 40
+      }));
+    } else {
       bullets.push({
         x: this.x,
         y: this.y,
         angle: this.angle,
         speed: 400,
         owner: 'player',
-        damage: this.damage
+        damage: this.damage,
+        type: 'normal'
       });
-      this.lastShot = Date.now();
     }
-
-    this.x = Math.max(this.radius, Math.min(this.canvas.width - this.radius, this.x));
-    this.y = Math.max(this.radius, Math.min(this.canvas.height - this.radius, this.y));
   }
 
   draw(ctx) {
