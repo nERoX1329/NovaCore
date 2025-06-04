@@ -1,5 +1,7 @@
+import { placeTurret } from './companions.js';
+
 export class Player {
-  constructor(canvas) {
+  constructor(canvas, classType = 'Drone Commander') {
     this.canvas = canvas;
     this.x = canvas.width / 2;
     this.y = canvas.height - 30;
@@ -19,6 +21,8 @@ export class Player {
     this.weapon = 'normal';
     this.upgrades = [];
     this.synergies = [];
+    this.classType = classType;
+    this.lastTurret = 0;
   }
 
   update(dt, keys, mouse, bullets) {
@@ -36,6 +40,13 @@ export class Player {
     }
 
     this.angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+
+    if (this.classType === 'Technomancer' && keys['e'] && Date.now() - this.lastTurret > 15000) {
+      if (typeof placeTurret === 'function') {
+        placeTurret(this.x, this.y, this);
+        this.lastTurret = Date.now();
+      }
+    }
 
     if ((keys[' '] || mouse.down) && Date.now() - this.lastShot > this.fireRate) {
       this.shoot(bullets);

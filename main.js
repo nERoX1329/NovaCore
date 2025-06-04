@@ -4,6 +4,7 @@ import { bullets, explosions, updateBullets, drawBullets, checkBulletCollisions,
 import { xpOrbs, spawnXPOrb, updateXPOrbs, drawXPOrbs } from './xp.js';
 import { showUpgradeMenu } from './upgrades.js';
 import { updateUI } from './ui.js';
+import { drones, turrets, spawnDrone, updateDrones, drawDrones, placeTurret, updateTurrets, drawTurrets } from './companions.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -43,6 +44,8 @@ function gameLoop() {
 
   player.update(dt, keys, mouse, bullets);
   updateBullets(dt, canvas);
+  updateDrones(dt, player, enemies, bullets);
+  updateTurrets(dt, enemies, bullets);
   updateEnemies(dt, player, canvas);
   checkBulletCollisions(enemies, (enemy, idx) => {
     enemies.splice(idx, 1);
@@ -55,6 +58,8 @@ function gameLoop() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   player.draw(ctx);
+  drawDrones(ctx);
+  drawTurrets(ctx);
   drawEnemies(ctx);
   drawBullets(ctx);
   drawXPOrbs(ctx);
@@ -63,7 +68,12 @@ function gameLoop() {
 
   if (player.needsUpgrade) {
     player.needsUpgrade = false;
-    showUpgradeMenu(player);
+    gameRunning = false;
+    showUpgradeMenu(player, () => {
+      gameRunning = true;
+      requestAnimationFrame(gameLoop);
+    });
+    return;
   }
 
   checkPlayerCollisions();
@@ -74,7 +84,19 @@ function gameLoop() {
 }
 
 function startGame() {
-  player = new Player(canvas);
+  const classSelect = document.getElementById('startingSpecSelect');
+  const classType = classSelect ? classSelect.value : 'Drone Commander';
+  player = new Player(canvas, classType);
+  drones.length = 0;
+  turrets.length = 0;
+  if (classType === 'Drone Commander') {
+    spawnDrone(player);
+  } else if (classType === 'Arsenal Expert') {
+    player.damage = Math.floor(player.damage * 1.1);
+  } else if (classType === 'Shield Guardian') {
+    player.maxHp = Math.floor(player.maxHp * 1.2);
+    player.hp = player.maxHp;
+  }
   score = 0;
   enemies.length = 0;
   bullets.length = 0;
