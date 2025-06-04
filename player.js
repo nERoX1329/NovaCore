@@ -7,9 +7,15 @@ export class Player {
     this.color = '#00FFFF';
     this.hp = 100;
     this.maxHp = 100;
+    this.xp = 0;
+    this.xpToNext = 50;
+    this.level = 1;
     this.speed = 200; // pixels per second
+    this.damage = 10;
+    this.fireRate = 300; // ms between shots
     this.angle = -Math.PI / 2;
     this.lastShot = 0;
+    this.needsUpgrade = false;
   }
 
   update(dt, keys, mouse, bullets) {
@@ -28,13 +34,14 @@ export class Player {
 
     this.angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
 
-    if ((keys[' '] || mouse.down) && Date.now() - this.lastShot > 300) {
+    if ((keys[' '] || mouse.down) && Date.now() - this.lastShot > this.fireRate) {
       bullets.push({
         x: this.x,
         y: this.y,
         angle: this.angle,
         speed: 400,
-        owner: 'player'
+        owner: 'player',
+        damage: this.damage
       });
       this.lastShot = Date.now();
     }
@@ -55,5 +62,15 @@ export class Player {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
+  }
+
+  gainXp(amount) {
+    this.xp += amount;
+    while (this.xp >= this.xpToNext) {
+      this.xp -= this.xpToNext;
+      this.level += 1;
+      this.xpToNext = Math.floor(this.xpToNext * 1.2);
+      this.needsUpgrade = true;
+    }
   }
 }

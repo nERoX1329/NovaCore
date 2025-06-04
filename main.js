@@ -1,6 +1,8 @@
 import { Player } from './player.js';
 import { enemies, spawnEnemy, updateEnemies, drawEnemies } from './enemies.js';
 import { bullets, explosions, updateBullets, drawBullets, checkBulletCollisions, updateExplosions, drawExplosions, createExplosion } from './effects.js';
+import { xpOrbs, spawnXPOrb, updateXPOrbs, drawXPOrbs } from './xp.js';
+import { showUpgradeMenu } from './upgrades.js';
 import { updateUI } from './ui.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -39,15 +41,23 @@ function gameLoop() {
     enemies.splice(idx, 1);
     score += 10;
     createExplosion(enemy.x, enemy.y);
+    spawnXPOrb(enemy.x, enemy.y, 10);
   });
+  updateXPOrbs(dt, player);
   updateExplosions(dt);
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   player.draw(ctx);
   drawEnemies(ctx);
   drawBullets(ctx);
+  drawXPOrbs(ctx);
   drawExplosions(ctx);
   updateUI(player, score);
+
+  if (player.needsUpgrade) {
+    player.needsUpgrade = false;
+    showUpgradeMenu(player);
+  }
 
   requestAnimationFrame(gameLoop);
 }
@@ -58,9 +68,12 @@ function startGame() {
   enemies.length = 0;
   bullets.length = 0;
   explosions.length = 0;
+  xpOrbs.length = 0;
   lastSpawn = 0;
   lastTime = performance.now();
   showScreen('gameScreen');
+  const panel = document.getElementById('augmentationChoicePanel');
+  if (panel) panel.classList.add('hidden');
   requestAnimationFrame(gameLoop);
 }
 
