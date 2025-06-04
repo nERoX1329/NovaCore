@@ -2425,9 +2425,9 @@
             costSpan.textContent = `${cost} MP`;
 
             row.appendChild(nameSpan);
-            row.appendChild(buyBtn);
-            row.appendChild(ownedSpan);
             row.appendChild(costSpan);
+            row.appendChild(ownedSpan);
+            row.appendChild(buyBtn);
 
             metaUpgradesContainer.appendChild(row);
         });
