@@ -58,6 +58,7 @@
     let bullets = [];
     let enemies = [];
     let xpOrbs = [];
+    let powerUps = [];
     let activeEffects = [];
 
     let keys = {};
@@ -87,6 +88,57 @@
     let chosenSpecializations = [];
     let activeRandomEvent = null;
     let nextRandomEventTime = 30000;
+
+    const ZONE_REWARDS = [
+        {
+            text: '+10 Max HP',
+            apply: (p) => { p.maxHp += 10; p.hp = Math.min(p.hp + 10, p.maxHp); }
+        },
+        {
+            text: '+1 Projectile',
+            apply: (p) => { p.numProjectiles += 1; p.baseNumProjectiles += 1; }
+        },
+        {
+            text: '+10% Damage',
+            apply: (p) => { p.damageMultiplier *= 1.10; }
+        },
+        {
+            text: '+5% Fire Rate',
+            apply: (p) => { p.shotsPerSecond *= 1.05; p.fireRate = 1000 / p.shotsPerSecond; }
+        },
+        {
+            text: '+5% Speed',
+            apply: (p) => { p.speed *= 1.05; p.baseSpeed = p.speed; }
+        }
+    ];
+
+    const POWER_UP_TYPES = [
+        {
+            id: 'speed', color: 'yellow', duration: 10000,
+            apply: (p) => { p.speed *= 1.25; },
+            revert: (p) => { p.speed /= 1.25; }
+        },
+        {
+            id: 'firerate', color: 'orange', duration: 10000,
+            apply: (p) => { p.shotsPerSecond *= 1.25; p.fireRate = 1000 / p.shotsPerSecond; },
+            revert: (p) => { p.shotsPerSecond /= 1.25; p.fireRate = 1000 / p.shotsPerSecond; }
+        },
+        {
+            id: 'damage', color: 'red', duration: 10000,
+            apply: (p) => { p.damageMultiplier *= 1.25; },
+            revert: (p) => { p.damageMultiplier /= 1.25; }
+        },
+        {
+            id: 'shield', color: 'cyan', duration: 0,
+            apply: (p) => { p.shield = Math.min(p.maxShield || 0, (p.shield || 0) + 20); },
+            revert: (p) => {}
+        },
+        {
+            id: 'invuln', color: 'white', duration: 5000,
+            apply: (p) => { p.isInvulnerable = true; p.invulnerableTimer = 5000; },
+            revert: (p) => { p.isInvulnerable = false; p.invulnerableTimer = 0; }
+        }
+    ];
 
     function getCssVar(varName) {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -655,6 +707,8 @@
             critAoeDamagePercent: 0, critAoeRadius: 30, critRicochetChance: 0, critRicochetDamageFactor: 0.5,
 
             phantomStrikeShotInterval: 0, phantomStrikeDamageFactor: 0.75, phantomStrikeCounter: 0,
+
+            tempEffects: [],
         };
         player.fireRate = 1000 / player.shotsPerSecond;
         player.baseMaxHp = player.maxHp;
@@ -761,16 +815,17 @@
 
     function spawnCircleEvent() {
         if (!player || !canvas) return;
+        const reward = ZONE_REWARDS[Math.floor(Math.random() * ZONE_REWARDS.length)];
         activeRandomEvent = {
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             radius: 50,
             progress: 0,
             required: 8000,
-            rewardText: '+2 projectiles for 15s'
+            reward
         };
         if (randomEventInfo) {
-            randomEventInfo.textContent = `Stand in the green circle! Reward: ${activeRandomEvent.rewardText}`;
+            randomEventInfo.textContent = `Stand in the green circle! Reward: ${reward.text}`;
             randomEventInfo.classList.remove('hidden');
         }
     }
@@ -784,9 +839,10 @@
         if (dist < activeRandomEvent.radius) {
             activeRandomEvent.progress += dT;
             if (activeRandomEvent.progress >= activeRandomEvent.required) {
-                player.tempExtraProjectiles = { amount: 2, timer: 15000 };
-                player.numProjectiles += 2;
-                if (randomEventInfo) randomEventInfo.textContent = `${activeRandomEvent.rewardText}!`;
+                if (activeRandomEvent.reward && activeRandomEvent.reward.apply) {
+                    activeRandomEvent.reward.apply(player);
+                }
+                if (randomEventInfo) randomEventInfo.textContent = `${activeRandomEvent.reward.text}!`;
                 activeRandomEvent = null;
                 if (randomEventInfo) setTimeout(() => randomEventInfo.classList.add('hidden'), 3000);
                 return;
@@ -796,7 +852,7 @@
         }
         if (randomEventInfo) {
             const pct = Math.floor((activeRandomEvent.progress / activeRandomEvent.required) * 100);
-            randomEventInfo.textContent = `Bonus: ${activeRandomEvent.rewardText} - ${pct}%`;
+            randomEventInfo.textContent = `Bonus: ${activeRandomEvent.reward.text} - ${pct}%`;
             randomEventInfo.classList.remove('hidden');
         }
     }
@@ -805,6 +861,36 @@
         if (!player) return;
         const actualValue = Math.floor(value * (player.xpGainMultiplier || 1.0));
         xpOrbs.push({ x, y, value: actualValue, size: 2 + Math.log2(actualValue + 1) * 0.7, speed: 2.5, color: getCssVar('--xp-orb-color') || '#40E0D0' });
+    }
+
+    function spawnPowerUp(x, y) {
+        const type = POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+        powerUps.push({ x, y, size: 6, type });
+    }
+
+    function updatePowerUps(dT) {
+        if (!player) return;
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+            const p = powerUps[i];
+            const dist = Math.hypot(player.x - p.x, player.y - p.y);
+            if (dist < player.radius + p.size) {
+                if (p.type.apply) p.type.apply(player);
+                if (p.type.duration && p.type.duration > 0) {
+                    player.tempEffects.push({ timer: p.type.duration, revert: p.type.revert });
+                }
+                powerUps.splice(i,1);
+            }
+        }
+    }
+
+    function drawPowerUps() {
+        if (!ctx) return;
+        powerUps.forEach(p => {
+            ctx.fillStyle = p.type.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+            ctx.fill();
+        });
     }
 
     function createExplosion(x, y, radius, damage, ownerType = 'player', color = 'orange', duration = 300) {
@@ -865,6 +951,16 @@
 
     function updatePlayer(dT) {
         if (!player) return;
+        if (player.tempEffects && player.tempEffects.length > 0) {
+            for (let i = player.tempEffects.length - 1; i >= 0; i--) {
+                const eff = player.tempEffects[i];
+                eff.timer -= dT;
+                if (eff.timer <= 0) {
+                    if (eff.revert) eff.revert(player);
+                    player.tempEffects.splice(i, 1);
+                }
+            }
+        }
         if (player.tempExtraProjectiles) {
             player.tempExtraProjectiles.timer -= dT;
             if (player.tempExtraProjectiles.timer <= 0) {
@@ -1378,6 +1474,9 @@
                 if(cascadeType === 'poison') cascadeColor = 'greenyellow';
                 createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 60 * (player.areaDamageMultiplier || 1.0), enemy.maxHp * 0.1, 'player_effect', cascadeColor);
             }
+        }
+        if (Math.random() < 0.1) {
+            spawnPowerUp(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
         }
         // Gravity Well (Blackhole) wurde entfernt
 
@@ -2154,6 +2253,7 @@
             updateBullets(cappedDeltaTime);
             updateEnemies(cappedDeltaTime);
             updateXPOrbs(cappedDeltaTime);
+            updatePowerUps(cappedDeltaTime);
             updateActiveEffects(cappedDeltaTime);
             checkCollisions();
             checkAchievements();
@@ -2164,6 +2264,7 @@
         drawEnemies();
         drawBullets();
         drawXPOrbs();
+        drawPowerUps();
         drawActiveEffects();
         drawRandomEvent();
         if (player) updateGameUI();
@@ -2298,10 +2399,16 @@
 
         upgrades.forEach(u => {
             const count = metaUpgrades[u.key] || 0;
-            const btn = document.createElement('button');
-            btn.textContent = `Buy ${u.label} (${cost} MP) [Owned: ${count}]`;
-            btn.disabled = metaPoints < cost;
-            btn.addEventListener('click', () => {
+            const row = document.createElement('div');
+            row.className = 'meta-upgrade';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = u.label;
+
+            const buyBtn = document.createElement('button');
+            buyBtn.textContent = 'Buy';
+            buyBtn.disabled = metaPoints < cost;
+            buyBtn.addEventListener('click', () => {
                 if (metaPoints >= cost) {
                     metaPoints -= cost;
                     metaUpgrades[u.key] = (metaUpgrades[u.key] || 0) + 1;
@@ -2310,7 +2417,19 @@
                     updateMetaShopUI();
                 }
             });
-            metaUpgradesContainer.appendChild(btn);
+
+            const ownedSpan = document.createElement('span');
+            ownedSpan.textContent = `Lv ${count}`;
+
+            const costSpan = document.createElement('span');
+            costSpan.textContent = `${cost} MP`;
+
+            row.appendChild(nameSpan);
+            row.appendChild(buyBtn);
+            row.appendChild(ownedSpan);
+            row.appendChild(costSpan);
+
+            metaUpgradesContainer.appendChild(row);
         });
     }
 

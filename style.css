@@ -188,3 +188,13 @@
     width: 100%;
     box-sizing: border-box;
 }
+
+.meta-upgrade {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+.meta-upgrade span:first-child {
+    flex: 1;
+}
