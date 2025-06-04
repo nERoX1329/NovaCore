@@ -31,6 +31,7 @@
     const metaUpgradesContainer = document.getElementById('metaUpgrades');
     const scoreboardList = document.getElementById('scoreboardList');
     const difficultySelect = document.getElementById('difficultySelect');
+    const startingSpecSelect = document.getElementById('startingSpecSelect');
     const pauseOverlay = document.getElementById('pauseOverlay');
     const resumeButton = document.getElementById('resumeButton');
     const quitButton = document.getElementById('quitButton');
@@ -86,6 +87,7 @@
     const BASE_REROLLS_PER_CHOICE = 3;
     // Track chosen class specializations for the current run
     let chosenSpecializations = [];
+    let selectedStartingSpecialization = null;
     let activeRandomEvent = null;
     let nextRandomEventTime = 30000;
 
@@ -495,6 +497,7 @@
                 if (a.unlocks && !unlockedClasses.includes(a.unlocks)) {
                     unlockedClasses.push(a.unlocks);
                     localStorage.setItem(unlockedClassesKey, JSON.stringify(unlockedClasses));
+                    updateSpecializationMenu();
                 }
                 showAchievement(`Achievement Unlocked: ${a.name}`);
             }
@@ -749,6 +752,14 @@
         }
         if (metaUpgrades.luck_bonus) {
             player.luckFactor *= 1 + metaUpgrades.luck_bonus * 0.05;
+        }
+
+        if (selectedStartingSpecialization) {
+            const spec = CLASS_SPECIALIZATIONS.find(s => s.id === selectedStartingSpecialization);
+            if (spec && isClassUnlocked(spec.id)) {
+                spec.apply(player);
+                if (!chosenSpecializations.includes(spec.id)) chosenSpecializations.push(spec.id);
+            }
         }
     }
 
@@ -2145,6 +2156,10 @@
             console.error("Canvas or Context not found! Game cannot start.");
             return;
         }
+        if (startingSpecSelect) {
+            const val = startingSpecSelect.value;
+            selectedStartingSpecialization = val ? val : null;
+        }
         resetRunVariables();
         nextBossMinute = 5;
         player.difficultyMultiplier = parseFloat(difficultySelect ? difficultySelect.value : '1');
@@ -2277,6 +2292,8 @@
             screens[screenName].classList.add('active');
         } else { console.error("Error: Screen not found - " + screenName); return; }
         gameState = screenName;
+
+        if (screenName === 'startMenu') updateSpecializationMenu();
 
         if (gameUi) {
             if (screenName === 'game') gameUi.classList.remove('hidden');
@@ -2443,7 +2460,25 @@
         });
     }
 
+    function updateSpecializationMenu() {
+        if (!startingSpecSelect) return;
+        startingSpecSelect.innerHTML = '';
+        const noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = 'None';
+        startingSpecSelect.appendChild(noneOpt);
+
+        CLASS_SPECIALIZATIONS.forEach(spec => {
+            const opt = document.createElement('option');
+            opt.value = spec.id;
+            opt.textContent = spec.name + (isClassUnlocked(spec.id) ? '' : ' (Locked)');
+            if (!isClassUnlocked(spec.id)) opt.disabled = true;
+            startingSpecSelect.appendChild(opt);
+        });
+    }
+
     updateMetaShopUI();
     updateScoreboardUI();
+    updateSpecializationMenu();
     switchScreen('startMenu');
 

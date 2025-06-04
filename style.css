@@ -171,7 +171,21 @@
     margin-left: 6px;
 }
 
+#startingSpecSelect {
+    background-color: var(--secondary-color);
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 5px;
+    font-family: var(--font-main);
+    margin-left: 6px;
+}
+
 #difficultySelect option {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+}
+
+#startingSpecSelect option {
     background-color: var(--secondary-color);
     color: var(--primary-color);
 }
