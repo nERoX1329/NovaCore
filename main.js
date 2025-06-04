@@ -23,8 +23,15 @@ let mouse = { x: 0, y: 0, down: false };
 let score = 0;
 let lastSpawn = 0;
 let lastTime = performance.now();
+let gameRunning = false;
+
+const scoreboardKey = 'nova_scoreboard';
+const scoreboardList = document.getElementById('scoreboardList');
+let scoreboardData = JSON.parse(localStorage.getItem(scoreboardKey) || '[]');
+updateScoreboardUI();
 
 function gameLoop() {
+  if (!gameRunning) return;
   const now = performance.now();
   const dt = now - lastTime;
   lastTime = now;
@@ -59,7 +66,11 @@ function gameLoop() {
     showUpgradeMenu(player);
   }
 
-  requestAnimationFrame(gameLoop);
+  checkPlayerCollisions();
+
+  if (gameRunning) {
+    requestAnimationFrame(gameLoop);
+  }
 }
 
 function startGame() {
@@ -74,7 +85,47 @@ function startGame() {
   showScreen('gameScreen');
   const panel = document.getElementById('augmentationChoicePanel');
   if (panel) panel.classList.add('hidden');
+  gameRunning = true;
   requestAnimationFrame(gameLoop);
+}
+
+function gameOver() {
+  gameRunning = false;
+  scoreboardData.push({ score, level: player.level });
+  scoreboardData.sort((a, b) => b.score - a.score);
+  scoreboardData = scoreboardData.slice(0, 5);
+  localStorage.setItem(scoreboardKey, JSON.stringify(scoreboardData));
+  const fs = document.getElementById('finalScoreDisplay');
+  const fl = document.getElementById('finalLevelDisplay');
+  if (fs) fs.textContent = score;
+  if (fl) fl.textContent = player.level;
+  updateScoreboardUI();
+  showScreen('gameOverScreen');
+}
+
+function updateScoreboardUI() {
+  if (!scoreboardList) return;
+  scoreboardList.innerHTML = '';
+  scoreboardData.forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = `Score: ${r.score} | Lv ${r.level}`;
+    scoreboardList.appendChild(li);
+  });
+}
+
+function checkPlayerCollisions() {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    const dist = Math.hypot(player.x - e.x, player.y - e.y);
+    if (dist < player.radius + e.size / 2) {
+      player.hp -= 10;
+      enemies.splice(i, 1);
+      if (player.hp <= 0) {
+        gameOver();
+        return;
+      }
+    }
+  }
 }
 
 document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
@@ -100,6 +151,7 @@ if (openMetaShopButton) {
 const openScoreboardButton = document.getElementById('openScoreboardButton');
 if (openScoreboardButton) {
   openScoreboardButton.addEventListener('click', () => {
+    updateScoreboardUI();
     showScreen('scoreboardScreen');
   });
 }
